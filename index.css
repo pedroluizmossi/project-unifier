@@ -11,6 +11,17 @@
   }
 }
 
+/* Font and background */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #020617;
+    color: #e2e8f0;
+    background-image:
+        linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
 /* Custom scrollbar for a cleaner look */
 ::-webkit-scrollbar {
     width: 8px;
@@ -33,6 +44,33 @@
 }
 .dark ::-webkit-scrollbar-thumb:hover {
     background: #64748b; /* slate-500 */
+}
+
+/* Gradient text utility */
+.gradient-text {
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
+/* Glassmorphism card */
+.glass-card {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+/* Feature card hover effect */
+.feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 20px 40px -10px rgba(56, 189, 248, 0.1);
 }
 
 /* Spinner animation */
@@ -58,4 +96,51 @@
 }
 .copied-feedback {
   animation: fade-in-out 2s ease-in-out;
+}
+
+/* Code block container */
+.code-block-container {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+}
+
+/* Tab button styles */
+.tab-button {
+    transition: all 0.2s ease-in-out;
+    border-bottom: 2px solid transparent;
+}
+.tab-button.active {
+    color: #38bdf8;
+    border-bottom-color: #38bdf8;
+}
+
+/* Hero background and grid background */
+.hero-bg {
+    background-image: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.1), transparent 60%);
+}
+.grid-bg {
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+/* Custom PrismJS styles for code blocks */
+pre[class*="language-"] {
+    background: transparent !important;
+    padding: 1.25rem !important;
+    margin: 0 !important;
+    padding-top: 3.5rem !important;
+}
+
+/* Copy button for code blocks */
+.copy-btn {
+    transition: all 0.2s ease;
+}
+
+/* Banner glow effect */
+.header-banner-glow {
+    box-shadow: 0 4px 32px 0 rgba(56,189,248,0.10), 0 1.5px 0 0 rgba(129,140,248,0.10) inset;
+    position: relative;
+    z-index: 1;
 }

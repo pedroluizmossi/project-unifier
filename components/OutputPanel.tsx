@@ -52,7 +52,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col gap-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 min-h-[500px] lg:min-h-0">
+        <div className="flex flex-col gap-4 glass-card rounded-2xl shadow-lg border border-sky-500/10 min-h-[500px] lg:min-h-0">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700">
                 <h3 className="font-semibold text-lg">Output</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 h-5">{statusMessage}</p>
@@ -70,8 +70,22 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                     <>
                         <div className="flex items-center gap-2 p-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-t-lg">
                             <span className={`text-xs text-green-600 dark:text-green-400 transition-opacity ${copied ? 'copied-feedback' : 'opacity-0'}`}>Copied!</span>
-                            <button onClick={handleCopy} className="text-xs font-medium rounded-md px-3 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Copy</button>
-                            <button onClick={handleDownload} className="text-xs font-medium rounded-md px-3 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Download</button>
+                            <div className="flex gap-2 ml-auto">
+                                <button
+                                    onClick={handleCopy}
+                                    className="flex items-center gap-2 text-xs font-medium rounded-md px-3 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 shadow hover:bg-indigo-50 dark:hover:bg-slate-600 text-indigo-600 dark:text-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    Copy
+                                </button>
+                                <button
+                                    onClick={handleDownload}
+                                    className="flex items-center gap-2 text-xs font-medium rounded-md px-3 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 shadow hover:bg-indigo-50 dark:hover:bg-slate-600 text-indigo-600 dark:text-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/><rect x="5" y="19" width="14" height="2" rx="1" /></svg>
+                                    Download
+                                </button>
+                            </div>
                         </div>
                         <div className="flex-grow min-h-[350px] max-h-[600px] overflow-y-auto rounded-b-lg bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
                             <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>

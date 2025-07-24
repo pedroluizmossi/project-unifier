@@ -5,6 +5,7 @@ import Header from './Header.tsx';
 import ControlsPanel from './ControlsPanel.tsx';
 import OutputPanel from './OutputPanel.tsx';
 import MarkdownPreview from './MarkdownPreview.tsx';
+import Footer from './Footer.tsx';
 
 const App = () => {
     // State for user-configurable settings
@@ -26,11 +27,11 @@ const App = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col min-h-screen">
             <Header />
-            <main className="flex-grow w-full max-w-7xl mx-auto flex flex-col gap-8 mt-8">
+            <main className="flex-grow w-full max-w-7xl mx-auto flex flex-col gap-8 mt-8 px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col lg:flex-row gap-8">
-                    <div className="flex flex-col gap-6 flex-1">
+                    <div className="flex flex-col gap-6 flex-1 lg:max-w-md">
                         <ControlsPanel
                             ignorePatterns={ignorePatterns}
                             setIgnorePatterns={setIgnorePatterns}
@@ -50,18 +51,19 @@ const App = () => {
                             {isLoading ? 'Processing...' : 'Select Directory & Unify'}
                         </button>
                     </div>
-                </div>
-                <div className="mt-8">
-                    <OutputPanel
-                        isLoading={isLoading}
-                        statusMessage={statusMessage}
-                        stats={stats}
-                        outputContent={outputContent}
-                        directoryName={directoryName}
-                        outputFormat={outputFormat}
-                    />
+                    <div className="flex-1 min-w-0">
+                        <OutputPanel
+                            isLoading={isLoading}
+                            statusMessage={statusMessage}
+                            stats={stats}
+                            outputContent={outputContent}
+                            directoryName={directoryName}
+                            outputFormat={outputFormat}
+                        />
+                    </div>
                 </div>
             </main>
+            <Footer />
         </div>
     );
 };

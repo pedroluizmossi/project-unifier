@@ -18,7 +18,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     includeTree, setIncludeTree
 }) => {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="glass-card rounded-2xl shadow-lg border border-sky-500/10 p-6">
             <div className="space-y-6">
                 <div>
                     <label htmlFor="ignore" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Ignore Patterns</label>
