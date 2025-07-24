@@ -5,7 +5,7 @@
 
 Project Unifier is a tool that allows you to select a local directory and generate a single, context-rich file (Markdown or JSON) containing the structure and contents of your project. This is especially useful for preparing codebases for Large Language Models (LLMs), code review, or documentation.
 
-#  🌐: https://pedroluizmossi.github.io/project-unifier/
+#  🌐 https://pedroluizmossi.github.io/project-unifier/
 
 ## Features
 
