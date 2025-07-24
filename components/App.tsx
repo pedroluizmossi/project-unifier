@@ -29,6 +29,9 @@ const App = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
+            <span className="block text-xs text-slate-400 bg-slate-800/60 rounded px-3 py-1 w-fit mx-auto mb-4">
+                <strong>Privacy:</strong> All processing happens locally in your browser. No files or data ever leave your device.
+            </span>
             <main className="flex-grow w-full max-w-7xl mx-auto flex flex-col gap-8 mt-8 px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col lg:flex-row gap-8">
                     <div className="flex flex-col gap-6 flex-1 lg:max-w-md">
