@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply font-sans;
+  }
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 10px;
+    border: 2px solid #f1f5f9; /* slate-100 */
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569; /* slate-600 */
+    border-color: #1e293b; /* slate-800 */
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* slate-500 */
+}
+
+/* Spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Copied animation */
+@keyframes fade-in-out {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  10%, 90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.copied-feedback {
+  animation: fade-in-out 2s ease-in-out;
+}

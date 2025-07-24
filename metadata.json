@@ -1,0 +1,4 @@
+{
+  "name": "Project Unifier",
+  "description": "A tool to unify files from a directory into a single context file for LLMs."
+}
