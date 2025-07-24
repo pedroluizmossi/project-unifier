@@ -93,11 +93,14 @@ export const useProjectProcessor = () => {
                 });
             } else { // JSON
                 setStatusMessage('Generating JSON output...');
+                // Ao gerar a estrutura JSON, use a mesma lógica de generateTree para garantir consistência.
+                const tree = generateTree(dirHandle, patterns);
+                // Converta tree para o formato JSON esperado, incluindo diretórios vazios
                 const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
-                const tree = buildJsonStructure(allFiles, dirHandle.name);
+                const jsonTree = buildJsonStructure(allFiles, dirHandle.name);
                 finalOutput = JSON.stringify({
                     project_name: dirHandle.name,
-                    project_tree: tree,
+                    project_tree: jsonTree,
                     metadata: {
                       generation_timestamp_utc: new Date().toISOString(),
                       summary: {

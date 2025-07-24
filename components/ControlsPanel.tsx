@@ -37,12 +37,28 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-start">
+                <div
+                    className={`flex items-start ${outputFormat === 'json' ? 'pointer-events-none opacity-60' : ''}`}
+                >
                     <div className="flex h-5 items-center">
-                        <input id="include-tree" type="checkbox" checked={includeTree} disabled={outputFormat === 'json'} onChange={e => setIncludeTree(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50" />
+                        <input
+                            id="include-tree"
+                            type="checkbox"
+                            checked={includeTree}
+                            disabled={outputFormat === 'json'}
+                            onChange={e => {
+                                if (outputFormat !== 'json') setIncludeTree(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
+                        />
                     </div>
                     <div className="ml-3 text-sm">
-                        <label htmlFor="include-tree" className={`font-medium ${outputFormat === 'json' ? 'text-slate-400 dark:text-slate-500' : ''}`}>Include Directory Tree</label>
+                        <label
+                            htmlFor="include-tree"
+                            className={`font-medium ${outputFormat === 'json' ? 'text-slate-400 dark:text-slate-500' : ''}`}
+                        >
+                            Include Directory Tree
+                        </label>
                         <p className="text-slate-500 dark:text-slate-400 text-xs">(Markdown only)</p>
                     </div>
                 </div>

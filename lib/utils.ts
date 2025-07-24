@@ -148,7 +148,15 @@ export const processFile = async (fileHandle: FileSystemFileHandle, relativePath
     try {
         const file = await fileHandle.getFile();
         const fileSize = file.size;
-        const extension = `.${file.name.split('.').pop() || ''}`;
+        // Normalize filename and extension
+        const name = file.name.toLowerCase();
+        let extension = '';
+        if (name.startsWith('.')) {
+            // Arquivos como .gitignore, .env etc
+            extension = name;
+        } else if (name.includes('.')) {
+            extension = '.' + name.split('.').pop();
+        }
 
         if (maxSizeBytes > 0 && fileSize > maxSizeBytes) {
             return { path: relativePath, size_kb: fileSize / 1024, type: 'large_file', sha256: await calculateFileHash(file) };
