@@ -118,6 +118,7 @@ export const useProjectProcessor = () => {
                 binary: categorized.binary_files.length,
                 large: categorized.large_files.length,
                 tokens: calculateTokens(finalOutput),
+                files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) }))
             });
             setStatusMessage(`Processing complete for ${dirHandle.name}.`);
 

@@ -6,6 +6,7 @@ import ControlsPanel from './ControlsPanel.tsx';
 import OutputPanel from './OutputPanel.tsx';
 import MarkdownPreview from './MarkdownPreview.tsx';
 import Footer from './Footer.tsx';
+import FileStatsPanel from './FileStatsPanel.tsx';
 
 const App = () => {
     // State for user-configurable settings
@@ -64,6 +65,11 @@ const App = () => {
                             outputFormat={outputFormat}
                         />
                     </div>
+                </div>
+                <div className="mt-8">
+                    {stats && stats.files && (
+                        <FileStatsPanel files={stats.files} />
+                    )}
                 </div>
             </main>
             <Footer />
