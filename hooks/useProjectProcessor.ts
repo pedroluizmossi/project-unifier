@@ -1,51 +1,32 @@
 import { useState, useCallback } from 'react';
 import {
     FileInfo,
-    CategorizedFiles,
     ProcessorStatus,
     collectFileHandles,
-    processFile,
-    generateTree,
-    renderMarkdown,
-    buildJsonStructure,
-    calculateTokens
+    calculateTokens,
+    selectDirectoryNative,
+    selectDirectoryFallback,
+    convertFallbackFilesToHandles,
+    detectBrowserCapability,
+    isIgnored,
+    BrowserCapability,
+    generateProjectOutput,
 } from '../lib/utils.ts';
-
-// Type definitions for the File System Access API. These are not always included in
-// standard TypeScript lib files, so we define them here to avoid compilation
-// errors and provide type safety for the features used in this app.
-declare global {
-    interface FileSystemHandle {
-        readonly kind: 'file' | 'directory';
-        readonly name: string;
-    }
-
-    interface FileSystemFileHandle extends FileSystemHandle {
-        readonly kind: 'file';
-        getFile(): Promise<File>;
-    }
-
-    interface FileSystemDirectoryHandle extends FileSystemHandle {
-        readonly kind: 'directory';
-        values(): AsyncIterableIterator<FileSystemFileHandle | FileSystemDirectoryHandle>;
-    }
-
-    interface Window {
-        showDirectoryPicker(): Promise<FileSystemDirectoryHandle>;
-    }
-}
+import { useFileProcessorWorker } from './useFileProcessorWorker';
 
 
 interface ProcessorSettings {
     ignorePatterns: string;
     maxFileSize: number;
-    outputFormat: 'markdown' | 'json';
+    outputFormat: 'markdown' | 'json' | 'xml';
     includeTree: boolean;
 }
 
 interface DirectoryHandleCache {
-    handle: FileSystemDirectoryHandle;
+    handle: FileSystemDirectoryHandle | null;
     name: string;
+    fallbackFiles?: File[];
+    isFallback: boolean;
 }
 
 type TranslationFunction = (key: string, defaultValue?: string) => string;
@@ -57,79 +38,95 @@ export const useProjectProcessor = (t: TranslationFunction) => {
     const [directoryName, setDirectoryName] = useState<string | null>(null);
     const [stats, setStats] = useState<ProcessorStatus | null>(null);
     const [cachedDirHandle, setCachedDirHandle] = useState<DirectoryHandleCache | null>(null);
+    const [browserCapability, setBrowserCapability] = useState<BrowserCapability>(() => detectBrowserCapability());
+
+    const { processFiles, isSupported: isWorkerSupported } = useFileProcessorWorker({
+        onProgress: (processed, total) => {
+            setStatusMessage(`Processing files: ${processed}/${total}...`);
+        },
+    });
 
     const processDirectory = useCallback(async (settings: ProcessorSettings) => {
-        if (!('showDirectoryPicker' in window)) {
-            alert(t('errors.fileSystemAccess'));
+        const capability = detectBrowserCapability();
+        setBrowserCapability(capability);
+
+        if (capability === 'unsupported') {
+            alert(t('errors.browserUnsupported'));
             return;
         }
 
         try {
-            const dirHandle = await window.showDirectoryPicker();
+            let dirHandle: FileSystemDirectoryHandle | null = null;
+            let dirName: string;
+            let fileHandles: { handle: FileSystemFileHandle; path: string }[] = [];
+
             setIsLoading(true);
-            setDirectoryName(dirHandle.name);
-            setCachedDirHandle({ handle: dirHandle, name: dirHandle.name });
             setOutputContent('');
             setStats(null);
             setStatusMessage(t('output.generating'));
 
-            const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
-            const fileHandles = await collectFileHandles(dirHandle, patterns);
-            
-            setStatusMessage(`Found ${fileHandles.length} files. Processing...`);
+            if (capability === 'native') {
+                dirHandle = await selectDirectoryNative();
+                dirName = dirHandle.name;
+                
+                setDirectoryName(dirName);
+                setCachedDirHandle({ handle: dirHandle, name: dirName, isFallback: false });
 
-            const maxSizeBytes = settings.maxFileSize > 0 ? settings.maxFileSize * 1024 : -1;
-            const promises = fileHandles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
-            const results = await Promise.all(promises);
-            const filesData = results.filter((r): r is FileInfo => r !== null);
-            
-            const categorized: CategorizedFiles = { text_files: [], binary_files: [], large_files: [] };
-            filesData.forEach(file => {
-                if (file.type === 'text_file') categorized.text_files.push(file);
-                else if (file.type === 'binary_file') categorized.binary_files.push(file);
-                else categorized.large_files.push(file);
-            });
-            
-            let finalOutput = '';
-            
-            if (settings.outputFormat === 'markdown') {
-                setStatusMessage('Generating Markdown output...');
-                const tree = settings.includeTree ? await generateTree(dirHandle, patterns) : undefined;
-                finalOutput = renderMarkdown({
-                    project_name: dirHandle.name,
-                    directory_tree: tree,
-                    files_data: categorized,
-                });
-            } else { // JSON
-                setStatusMessage('Generating JSON output...');
-                // Ao gerar a estrutura JSON, use a mesma lógica de generateTree para garantir consistência.
-                const tree = generateTree(dirHandle, patterns);
-                // Converta tree para o formato JSON esperado, incluindo diretórios vazios
-                const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
-                const jsonTree = buildJsonStructure(allFiles, dirHandle.name);
-                finalOutput = JSON.stringify({
-                    project_name: dirHandle.name,
-                    project_tree: jsonTree,
-                    metadata: {
-                      generation_timestamp_utc: new Date().toISOString(),
-                      summary: {
-                          text_files: categorized.text_files.length,
-                          binary_files: categorized.binary_files.length,
-                          large_files: categorized.large_files.length,
-                      }
-                    }
-                }, null, 2);
+                const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
+                fileHandles = await collectFileHandles(dirHandle, patterns);
+            } else {
+                // Fallback mode
+                const result = await selectDirectoryFallback();
+                dirName = result.name;
+
+                setDirectoryName(dirName);
+                setCachedDirHandle({ handle: null, name: dirName, fallbackFiles: result.files, isFallback: true });
+
+                const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
+                fileHandles = await convertFallbackFilesToHandles(result.files, dirName);
+                fileHandles = fileHandles.filter(f => !isIgnored(f.path, patterns));
             }
 
-            setOutputContent(finalOutput);
+            setStatusMessage(`Found ${fileHandles.length} files. Processing...`);
+
+            // Create wrapper for processFiles to handle both worker and main thread
+            const processFilesWrapper = async (handles: { handle: FileSystemFileHandle; path: string }[], maxSizeBytes: number): Promise<FileInfo[]> => {
+                if (isWorkerSupported()) {
+                    try {
+                        const workerResults = await processFiles(handles, maxSizeBytes);
+                        return workerResults as FileInfo[];
+                    } catch (error) {
+                        console.warn('Worker processing failed, falling back to main thread:', error);
+                        const { processFile } = await import('../lib/utils.ts');
+                        const promises = handles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
+                        const results = await Promise.all(promises);
+                        return results.filter((r): r is FileInfo => r !== null);
+                    }
+                } else {
+                    const { processFile } = await import('../lib/utils.ts');
+                    const promises = handles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
+                    const results = await Promise.all(promises);
+                    return results.filter((r): r is FileInfo => r !== null);
+                }
+            };
+
+            const { output, categorized, filesData } = await generateProjectOutput({
+                fileHandles,
+                dirHandle,
+                dirName,
+                settings,
+                processFilesCallback: processFilesWrapper,
+            });
+
+            setOutputContent(output);
             setStats({
                 text: categorized.text_files.length,
                 binary: categorized.binary_files.length,
                 large: categorized.large_files.length,
-                tokens: calculateTokens(finalOutput),
+                tokens: calculateTokens(output),
                 files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) }))
             });
-            setStatusMessage(`Processing complete for ${dirHandle.name}.`);
+            setStatusMessage(`Processing complete for ${dirName}.`);
 
         } catch (error: any) {
             if (error.name !== 'AbortError') {
@@ -141,7 +138,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
         } finally {
             setIsLoading(false);
         }
-    }, [t]);
+    }, [t, isWorkerSupported, processFiles]);
 
     const reprocessWithIgnorePatterns = useCallback(async (settings: ProcessorSettings) => {
         if (!cachedDirHandle) return;
@@ -152,62 +149,56 @@ export const useProjectProcessor = (t: TranslationFunction) => {
             setStats(null);
             setStatusMessage('Recalculating with updated filters...');
 
-            const dirHandle = cachedDirHandle.handle;
             const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
-            const fileHandles = await collectFileHandles(dirHandle, patterns);
+            let fileHandles: { handle: FileSystemFileHandle; path: string }[] = [];
+
+            if (cachedDirHandle.isFallback && cachedDirHandle.fallbackFiles) {
+                fileHandles = await convertFallbackFilesToHandles(cachedDirHandle.fallbackFiles, cachedDirHandle.name);
+                fileHandles = fileHandles.filter(f => !isIgnored(f.path, patterns));
+            } else if (cachedDirHandle.handle) {
+                fileHandles = await collectFileHandles(cachedDirHandle.handle, patterns);
+            }
             
             setStatusMessage(`Found ${fileHandles.length} files. Processing...`);
 
-            const maxSizeBytes = settings.maxFileSize > 0 ? settings.maxFileSize * 1024 : -1;
-            const promises = fileHandles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
-            const results = await Promise.all(promises);
-            const filesData = results.filter((r): r is FileInfo => r !== null);
-            
-            const categorized: CategorizedFiles = { text_files: [], binary_files: [], large_files: [] };
-            filesData.forEach(file => {
-                if (file.type === 'text_file') categorized.text_files.push(file);
-                else if (file.type === 'binary_file') categorized.binary_files.push(file);
-                else categorized.large_files.push(file);
-            });
-            
-            let finalOutput = '';
-            
-            if (settings.outputFormat === 'markdown') {
-                setStatusMessage('Generating Markdown output...');
-                const tree = settings.includeTree ? await generateTree(dirHandle, patterns) : undefined;
-                finalOutput = renderMarkdown({
-                    project_name: dirHandle.name,
-                    directory_tree: tree,
-                    files_data: categorized,
-                });
-            } else { // JSON
-                setStatusMessage('Generating JSON output...');
-                const tree = generateTree(dirHandle, patterns);
-                const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
-                const jsonTree = buildJsonStructure(allFiles, dirHandle.name);
-                finalOutput = JSON.stringify({
-                    project_name: dirHandle.name,
-                    project_tree: jsonTree,
-                    metadata: {
-                      generation_timestamp_utc: new Date().toISOString(),
-                      summary: {
-                          text_files: categorized.text_files.length,
-                          binary_files: categorized.binary_files.length,
-                          large_files: categorized.large_files.length,
-                      }
+            // Create wrapper for processFiles to handle both worker and main thread
+            const processFilesWrapper = async (handles: { handle: FileSystemFileHandle; path: string }[], maxSizeBytes: number): Promise<FileInfo[]> => {
+                if (isWorkerSupported()) {
+                    try {
+                        const workerResults = await processFiles(handles, maxSizeBytes);
+                        return workerResults as FileInfo[];
+                    } catch (error) {
+                        console.warn('Worker processing failed, falling back to main thread:', error);
+                        const { processFile } = await import('../lib/utils.ts');
+                        const promises = handles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
+                        const results = await Promise.all(promises);
+                        return results.filter((r): r is FileInfo => r !== null);
                     }
-                }, null, 2);
-            }
+                } else {
+                    const { processFile } = await import('../lib/utils.ts');
+                    const promises = handles.map(f => processFile(f.handle as FileSystemFileHandle, f.path, maxSizeBytes));
+                    const results = await Promise.all(promises);
+                    return results.filter((r): r is FileInfo => r !== null);
+                }
+            };
 
-            setOutputContent(finalOutput);
+            const { output, categorized, filesData } = await generateProjectOutput({
+                fileHandles,
+                dirHandle: cachedDirHandle.handle,
+                dirName: cachedDirHandle.name,
+                settings,
+                processFilesCallback: processFilesWrapper,
+            });
+
+            setOutputContent(output);
             setStats({
                 text: categorized.text_files.length,
                 binary: categorized.binary_files.length,
                 large: categorized.large_files.length,
-                tokens: calculateTokens(finalOutput),
+                tokens: calculateTokens(output),
                 files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) }))
             });
-            setStatusMessage(`Processing complete for ${dirHandle.name}.`);
+            setStatusMessage(`Processing complete for ${cachedDirHandle.name}.`);
 
         } catch (error: any) {
             if (error.name !== 'AbortError') {
@@ -219,7 +210,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
         } finally {
             setIsLoading(false);
         }
-    }, [cachedDirHandle, t]);
+    }, [cachedDirHandle, t, isWorkerSupported, processFiles]);
 
     return {
         isLoading,
@@ -229,5 +220,6 @@ export const useProjectProcessor = (t: TranslationFunction) => {
         stats,
         processDirectory,
         reprocessWithIgnorePatterns,
+        browserCapability,
     };
 };

@@ -1,3 +1,5 @@
+import picomatch from 'picomatch';
+
 // --- TYPE DEFINITIONS ---
 export type FileInfo = {
   path: string;
@@ -60,36 +62,45 @@ export const LANG_MAP: { [key: string]: string } = {
     '.toml': 'toml'
 };
 
-
 // --- CORE LOGIC FUNCTIONS ---
-
-const globToRegex = (pattern: string): RegExp => {
-    const esc = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-    const regexStr = esc
-      .replace(/\*\*\//g, '(.*/)?') // Match multi-level directories
-      .replace(/\*\*/g, '.*') // Match any characters
-      .replace(/\*/g, '[^/]*') // Match characters except slash
-      .replace(/\?/g, '[^/]'); // Match single character except slash
-    
-    if (regexStr.startsWith('(.*/)?')) {
-        return new RegExp(`^${regexStr.substring(5)}$`);
-    }
-    return new RegExp(`^${regexStr}$`);
-};
 
 export const isIgnored = (relativePath: string, patterns: string[]): boolean => {
     const normalizedPath = relativePath.replace(/\\/g, '/');
-    const pathSegments = normalizedPath.split('/');
-    const fileName = pathSegments[pathSegments.length - 1];
-
+    
     for (const pattern of patterns) {
-        const isDirPattern = pattern.endsWith('/');
-        const patternToTest = isDirPattern ? normalizedPath + '/' : normalizedPath;
-
-        if (pattern.includes('/')) {
-             if (globToRegex(pattern).test(patternToTest)) return true;
+        if (!pattern.trim()) continue;
+        
+        const cleanPattern = pattern.trim();
+        
+        // Handle directory-only patterns (ending with /)
+        if (cleanPattern.endsWith('/')) {
+            const dirPattern = cleanPattern.slice(0, -1);
+            const isMatch = picomatch.isMatch(normalizedPath, dirPattern, { 
+                dot: true,
+                noglobstar: false 
+            });
+            if (isMatch) return true;
+            
+            // Also check if path is inside this directory
+            const isDirMatch = picomatch.isMatch(normalizedPath, `${dirPattern}/**`, { 
+                dot: true,
+                noglobstar: false 
+            });
+            if (isDirMatch) return true;
         } else {
-             if (globToRegex(pattern).test(fileName)) return true;
+            // Regular pattern matching
+            const isMatch = picomatch.isMatch(normalizedPath, cleanPattern, { 
+                dot: true,
+                noglobstar: false 
+            });
+            if (isMatch) return true;
+            
+            // Also match if pattern matches any path segment
+            const pathSegments = normalizedPath.split('/');
+            const fileName = pathSegments[pathSegments.length - 1];
+            if (picomatch.isMatch(fileName, cleanPattern, { dot: true })) {
+                return true;
+            }
         }
     }
     return false;
@@ -112,7 +123,6 @@ export const collectFileHandles = async (dirHandle: FileSystemDirectoryHandle, p
     await recurse(dirHandle, '');
     return fileHandles;
 };
-
 
 export const generateTree = async (dirHandle: FileSystemDirectoryHandle, patterns: string[]): Promise<string> => {
     let treeString = `${dirHandle.name}\n`;
@@ -153,7 +163,6 @@ export const processFile = async (fileHandle: FileSystemFileHandle, relativePath
         const name = file.name.toLowerCase();
         let extension = '';
         if (name.startsWith('.')) {
-            // Arquivos como .gitignore, .env etc
             extension = name;
         } else if (name.includes('.')) {
             extension = '.' + name.split('.').pop();
@@ -174,7 +183,6 @@ export const processFile = async (fileHandle: FileSystemFileHandle, relativePath
     }
 };
 
-
 // --- FORMATTING FUNCTIONS ---
 
 export const calculateTokens = (text: string): number => Math.ceil(text.length / 4);
@@ -184,7 +192,7 @@ export const renderMarkdown = (data: { objective?: string; directory_tree?: stri
     if (data.directory_tree) lines.push(`## 🌳 Directory Structure\n\n\`\`\`\n${data.directory_tree.trim()}\n\`\`\`\n`);
     
     if (data.files_data.text_files.length > 0) {
-        lines.push("## 📄 Text File Contents\n");
+        lines.push("## �  Text File Contents\n");
         data.files_data.text_files.forEach(f => {
             lines.push(`### \`${f.path}\` (Metadata: ${f.line_count} lines, ${f.size_kb.toFixed(2)} KB)\n`);
             lines.push(`\`\`\`${f.language}\n${f.content}\n\`\`\`\n`);
@@ -202,6 +210,170 @@ export const renderMarkdown = (data: { objective?: string; directory_tree?: stri
         lines.push("\n");
     }
     return lines.join('\n');
+};
+
+const escapeCdata = (content: string): string => {
+    return content.replace(/]]>/g, ']]]]><![CDATA[>');
+};
+
+const escapeXmlAttribute = (value: string): string => {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+export const renderXml = (data: { directory_tree?: string; files_data: CategorizedFiles; project_name: string }): string => {
+    const timestamp = new Date().toISOString();
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<project name="${escapeXmlAttribute(data.project_name)}" timestamp="${timestamp}">\n`;
+
+    // Directory structure (optional)
+    if (data.directory_tree) {
+        xml += `  <directory_structure>\n`;
+        xml += `    <![CDATA[\n${escapeCdata(data.directory_tree.trim())}\n    ]]>\n`;
+        xml += `  </directory_structure>\n`;
+    }
+
+    // Text files
+    if (data.files_data.text_files.length > 0) {
+        xml += `  <text_files>\n`;
+        data.files_data.text_files.forEach(f => {
+            const path = escapeXmlAttribute(f.path);
+            const lang = escapeXmlAttribute(f.language || 'text');
+            xml += `    <file path="${path}" language="${lang}" line_count="${f.line_count}" size_kb="${f.size_kb.toFixed(2)}">\n`;
+            xml += `      <![CDATA[\n${escapeCdata(f.content)}\n      ]]>\n`;
+            xml += `    </file>\n`;
+        });
+        xml += `  </text_files>\n`;
+    }
+
+    // Large files (omitted)
+    if (data.files_data.large_files.length > 0) {
+        xml += `  <large_files>\n`;
+        data.files_data.large_files.forEach(f => {
+            const path = escapeXmlAttribute(f.path);
+            xml += `    <file path="${path}" size_kb="${f.size_kb.toFixed(2)}" sha256="${f.sha256}" />\n`;
+        });
+        xml += `  </large_files>\n`;
+    }
+
+    // Binary files (omitted)
+    if (data.files_data.binary_files.length > 0) {
+        xml += `  <binary_files>\n`;
+        data.files_data.binary_files.forEach(f => {
+            const path = escapeXmlAttribute(f.path);
+            xml += `    <file path="${path}" size_kb="${f.size_kb.toFixed(2)}" sha256="${f.sha256}" />\n`;
+        });
+        xml += `  </binary_files>\n`;
+    }
+
+    xml += `</project>`;
+    return xml;
+};
+
+// --- BLOB & MEMORY OPTIMIZATION ---
+
+export const createOutputBlob = (content: string, format: 'markdown' | 'json' | 'xml'): Blob => {
+    const mimeTypes: Record<string, string> = {
+        markdown: 'text/markdown',
+        json: 'application/json',
+        xml: 'application/xml'
+    };
+    return new Blob([content], { type: mimeTypes[format] });
+};
+
+export const createDownloadUrl = (blob: Blob): string => {
+    return URL.createObjectURL(blob);
+};
+
+export const revokeDownloadUrl = (url: string): void => {
+    URL.revokeObjectURL(url);
+};
+
+export const generateFileName = (projectName: string, format: 'markdown' | 'json' | 'xml'): string => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const extensions: Record<string, string> = { markdown: 'md', json: 'json', xml: 'xml' };
+    const ext = extensions[format];
+    return `${projectName}_unified_${timestamp}.${ext}`;
+};
+
+// --- OUTPUT GENERATION ---
+
+export interface GenerateOutputParams {
+    fileHandles: { handle: FileSystemFileHandle; path: string }[];
+    dirHandle: FileSystemDirectoryHandle | null;
+    dirName: string;
+    settings: {
+        ignorePatterns: string;
+        maxFileSize: number;
+        outputFormat: 'markdown' | 'json' | 'xml';
+        includeTree: boolean;
+    };
+    processFilesCallback: (fileHandles: { handle: FileSystemFileHandle; path: string }[], maxSizeBytes: number) => Promise<FileInfo[]>;
+}
+
+export interface GenerateOutputResult {
+    output: string;
+    categorized: CategorizedFiles;
+    filesData: FileInfo[];
+}
+
+export const generateProjectOutput = async (params: GenerateOutputParams): Promise<GenerateOutputResult> => {
+    const { fileHandles, dirHandle, dirName, settings, processFilesCallback } = params;
+    const maxSizeBytes = settings.maxFileSize > 0 ? settings.maxFileSize * 1024 : -1;
+    
+    // Process files
+    const filesData = await processFilesCallback(fileHandles, maxSizeBytes);
+    
+    // Categorize files
+    const categorized: CategorizedFiles = { text_files: [], binary_files: [], large_files: [] };
+    filesData.forEach(file => {
+        if (file.type === 'text_file') categorized.text_files.push(file);
+        else if (file.type === 'binary_file') categorized.binary_files.push(file);
+        else categorized.large_files.push(file);
+    });
+    
+    // Generate output
+    let output = '';
+    
+    if (settings.outputFormat === 'markdown') {
+        let tree: string | undefined;
+        if (settings.includeTree && dirHandle) {
+            const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
+            tree = await generateTree(dirHandle, patterns);
+        }
+        output = renderMarkdown({
+            project_name: dirName,
+            directory_tree: tree,
+            files_data: categorized,
+        });
+    } else if (settings.outputFormat === 'xml') {
+        let tree: string | undefined;
+        if (settings.includeTree && dirHandle) {
+            const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
+            tree = await generateTree(dirHandle, patterns);
+        }
+        output = renderXml({
+            project_name: dirName,
+            directory_tree: tree,
+            files_data: categorized,
+        });
+    } else {
+        const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
+        const jsonTree = buildJsonStructure(allFiles, dirName);
+        output = JSON.stringify({
+            project_name: dirName,
+            project_tree: jsonTree,
+            metadata: {
+                generation_timestamp_utc: new Date().toISOString(),
+                summary: {
+                    text_files: categorized.text_files.length,
+                    binary_files: categorized.binary_files.length,
+                    large_files: categorized.large_files.length,
+                }
+            }
+        }, null, 2);
+    }
+    
+    return { output, categorized, filesData };
 };
 
 const buildFileTree = (filesData: FileInfo[]): Record<string, any> => {
@@ -222,10 +394,9 @@ const buildFileTree = (filesData: FileInfo[]): Record<string, any> => {
 };
 
 const convertTreeToProjectTree = (node: Record<string, any>, name: string, path: string): ProjectTree => {
-    if (node.path) { // It's a file leaf
+    if (node.path) {
         return { name, type: 'file', path, ...node };
     }
-    // It's a directory
     return {
         name,
         type: 'directory',
@@ -236,8 +407,70 @@ const convertTreeToProjectTree = (node: Record<string, any>, name: string, path:
     };
 }
 
-
 export const buildJsonStructure = (filesData: FileInfo[], rootName: string): ProjectTree => {
     const rawTree = buildFileTree(filesData);
     return convertTreeToProjectTree(rawTree, rootName, '');
+};
+
+// --- BROWSER CAPABILITY DETECTION ---
+
+export type BrowserCapability = 'native' | 'fallback' | 'unsupported';
+
+export const detectBrowserCapability = (): BrowserCapability => {
+    if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
+        return 'native';
+    }
+    return 'fallback';
+};
+
+// --- DIRECTORY SELECTION ---
+
+export const selectDirectoryNative = async (): Promise<FileSystemDirectoryHandle> => {
+    if (!('showDirectoryPicker' in window)) {
+        throw new Error('File System Access API not supported');
+    }
+    return window.showDirectoryPicker();
+};
+
+export const selectDirectoryFallback = async (): Promise<{ name: string; files: File[] }> => {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        (input as any).webkitdirectory = true;
+        (input as any).mozdirectory = true;
+        input.multiple = true;
+
+        input.onchange = (e: any) => {
+            const files = Array.from(e.target.files || []) as File[];
+            if (files.length === 0) {
+                reject(new Error('No files selected'));
+                return;
+            }
+            
+            const firstPath = (files[0] as any).webkitRelativePath || files[0].name;
+            const dirName = firstPath.split('/')[0] || 'selected-directory';
+            
+            resolve({ name: dirName, files });
+        };
+
+        input.onerror = () => reject(new Error('Directory selection cancelled'));
+        input.click();
+    });
+};
+
+export const convertFallbackFilesToHandles = async (files: File[], dirName: string): Promise<{ handle: FileSystemFileHandle; path: string }[]> => {
+    return files.map(file => {
+        const webkitPath = (file as any).webkitRelativePath || file.name;
+        const relativePath = webkitPath.startsWith(dirName + '/') 
+            ? webkitPath.substring(dirName.length + 1)
+            : webkitPath;
+
+        const mockHandle: FileSystemFileHandle = {
+            kind: 'file',
+            name: file.name,
+            getFile: async () => file,
+        } as FileSystemFileHandle;
+
+        return { handle: mockHandle, path: relativePath };
+    });
 };

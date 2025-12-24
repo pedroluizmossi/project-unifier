@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ProcessorStatus } from '../lib/utils.ts';
 import MarkdownPreview from './MarkdownPreview.tsx';
+import JsonPreview from './JsonPreview.tsx';
+import XmlPreview from './XmlPreview.tsx';
 import LanguageSwitcher from './LanguageSwitcher.tsx';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -10,11 +12,11 @@ interface OutputPanelProps {
     stats: ProcessorStatus | null;
     outputContent: string;
     directoryName: string | null;
-    outputFormat: 'markdown' | 'json';
+    outputFormat: 'markdown' | 'json' | 'xml';
 }
 
-const StatCard = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) => (
-    <div className="flex items-center gap-2 rounded-md border border-slate-800/60 bg-slate-900/60 px-3 py-1.5 whitespace-nowrap flex-shrink-0">
+const StatCard = ({ icon, label, value, tooltip }: { icon: React.ReactNode, label: string, value: string | number, tooltip?: string }) => (
+    <div className={`flex items-center gap-2 rounded-md border border-slate-800/60 bg-slate-900/60 px-3 py-1.5 whitespace-nowrap flex-shrink-0 ${tooltip ? 'cursor-help' : ''}`} title={tooltip}>
         <div className="text-sky-300">{icon}</div>
         <div className="text-xs">
             <span className="font-medium text-slate-100">{value}</span>
@@ -33,7 +35,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     const [viewMode, setViewMode] = useState<'raw' | 'preview' | 'split'>('preview');
 
     useEffect(() => {
-        if (outputFormat === 'json') {
+        if (outputFormat === 'json' || outputFormat === 'xml') {
             setViewMode('raw');
         } else if (outputFormat === 'markdown') {
             setViewMode(currentViewMode => currentViewMode === 'raw' ? 'split' : currentViewMode);
@@ -61,7 +63,8 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         const blob = new Blob([outputContent], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const extension = outputFormat === 'json' ? 'json' : 'md';
+        const extensions: Record<string, string> = { markdown: 'md', json: 'json', xml: 'xml' };
+        const extension = extensions[outputFormat];
         a.href = url;
         a.download = `${directoryName || 'project'}_unified_${new Date().toISOString().split('T')[0]}.${extension}`;
         document.body.appendChild(a);
@@ -143,27 +146,41 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                     </div>
                                 </>
                             )}
+                            {(outputFormat === 'json' || outputFormat === 'xml') && (
+                                <div className="text-xs text-slate-400 ml-auto">
+                                    {outputFormat === 'json' && '📋 JSON Preview'}
+                                    {outputFormat === 'xml' && '📄 XML Preview'}
+                                </div>
+                            )}
                         </div>
                         <div className="flex-1 min-h-0 overflow-hidden bg-slate-950/60">
-                            {outputFormat === 'markdown' && viewMode !== 'raw' ? (
-                                        viewMode === 'preview' ? (
-                                            <div className="h-full overflow-y-auto">
-                                                <div className="max-w-full overflow-x-hidden">
-                                                    <MarkdownPreview content={outputContent} />
-                                                </div>
-                                            </div>
+                            {outputFormat === 'markdown' ? (
+                                viewMode === 'raw' ? (
+                                    <div className="h-full overflow-y-auto">
+                                        <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
+                                    </div>
+                                ) : viewMode === 'preview' ? (
+                                    <div className="h-full overflow-y-auto">
+                                        <div className="max-w-full overflow-x-hidden">
+                                            <MarkdownPreview content={outputContent} />
+                                        </div>
+                                    </div>
                                 ) : (
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/60 h-full">
-                                                <div className="overflow-y-auto min-h-0">
-                                                    <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
-                                                </div>
-                                                <div className="overflow-y-auto min-h-0">
-                                                    <div className="max-w-full overflow-x-hidden">
-                                                        <MarkdownPreview content={outputContent} />
-                                                    </div>
-                                                </div>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/60 h-full">
+                                        <div className="overflow-y-auto min-h-0">
+                                            <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
+                                        </div>
+                                        <div className="overflow-y-auto min-h-0">
+                                            <div className="max-w-full overflow-x-hidden">
+                                                <MarkdownPreview content={outputContent} />
                                             </div>
+                                        </div>
+                                    </div>
                                 )
+                            ) : outputFormat === 'json' ? (
+                                <JsonPreview content={outputContent} />
+                            ) : outputFormat === 'xml' ? (
+                                <XmlPreview content={outputContent} />
                             ) : (
                                 <div className="h-full overflow-y-auto">
                                     <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>

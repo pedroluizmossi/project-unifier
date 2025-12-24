@@ -65,6 +65,7 @@
     "outputFormat": "Output Format",
     "markdown": "Markdown",
     "json": "JSON",
+    "xml": "XML",
     "includeDirectoryTree": "Include Directory Tree",
     "includeDirectoryTreeHint": "Add structure visualization",
     "selectDirectory": "📁 Select Directory"
@@ -100,7 +101,13 @@
     "directoryAccess": "Unable to access the selected directory",
     "fileRead": "Unable to read file",
     "invalidInput": "Invalid input provided",
-    "processingFailed": "Processing failed"
+    "processingFailed": "Processing failed",
+    "browserUnsupported": "Your browser doesn't support directory selection. Please use Chrome, Edge, Firefox, or Safari."
+  },
+  "browserCompat": {
+    "native": "Your browser supports native directory selection",
+    "fallback": "Your browser will use file selection (limited functionality)",
+    "unsupported": "Your browser doesn't support directory selection"
   },
   "language": {
     "switcher": "Language",

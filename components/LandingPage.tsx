@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import { detectBrowserCapability } from '../lib/utils';
 
 // ============================================================================
 // Data Models and Interfaces
@@ -33,6 +34,30 @@ interface LandingPageProps {
 // ============================================================================
 
 /**
+ * BrowserCompatibilityBadge Component
+ * Shows the browser's capability level for directory selection
+ */
+const BrowserCompatibilityBadge: React.FC = () => {
+  const { t } = useTranslation();
+  const capability = detectBrowserCapability();
+
+  const badgeConfig = {
+    native: { color: 'bg-green-500/20 border-green-500/50', icon: '✓', label: t('browserCompat.native') },
+    fallback: { color: 'bg-yellow-500/20 border-yellow-500/50', icon: '⚠', label: t('browserCompat.fallback') },
+    unsupported: { color: 'bg-red-500/20 border-red-500/50', icon: '✕', label: t('browserCompat.unsupported') },
+  };
+
+  const config = badgeConfig[capability];
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${config.color} border rounded-full text-xs font-medium`}>
+      <span>{config.icon}</span>
+      <span>{config.label}</span>
+    </div>
+  );
+};
+
+/**
  * HeroSection Component
  * Displays the main headline, description, and call-to-action button
  */
@@ -51,6 +76,11 @@ const HeroSection: React.FC<{ onSelectDirectory: () => void; isLoading?: boolean
       </div>
 
       <div className="max-w-4xl w-full space-y-8 text-center relative z-10">
+        {/* Browser Compatibility Badge */}
+        <div className="flex justify-center">
+          <BrowserCompatibilityBadge />
+        </div>
+
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
           <span className="text-indigo-400 text-sm font-medium">{t('hero.badge')}</span>

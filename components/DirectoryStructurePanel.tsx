@@ -32,7 +32,9 @@ const formatBytes = (bytes: number) => {
 };
 
 const estimateTokens = (size: number) => {
-    return Math.ceil(size / 4);
+    // Rough estimation: average file has ~3.5 characters per token
+    // This is used for file size estimation in the tree view
+    return Math.max(1, Math.ceil(size / 3.5));
 };
 
 const buildTreeFromFiles = (files: FlatFile[], rootLabel: string): TreeNode => {

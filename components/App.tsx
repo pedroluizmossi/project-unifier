@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DEFAULT_IGNORE_PATTERNS } from '../lib/utils';
 import { useProjectProcessor } from '../hooks/useProjectProcessor';
 import { useTranslation } from '../hooks/useTranslation';
@@ -11,7 +11,7 @@ const App = () => {
     // Configurações
     const [ignorePatterns, setIgnorePatterns] = useState(DEFAULT_IGNORE_PATTERNS.join('\n'));
     const [maxFileSize, setMaxFileSize] = useState<number>(5120);
-    const [outputFormat, setOutputFormat] = useState<'markdown' | 'json'>('markdown');
+    const [outputFormat, setOutputFormat] = useState<'markdown' | 'json' | 'xml'>('markdown');
     const [includeTree, setIncludeTree] = useState(true);
 
     const { t } = useTranslation();
@@ -20,6 +20,18 @@ const App = () => {
     const handleProcess = () => {
         processDirectory({ ignorePatterns, maxFileSize, outputFormat, includeTree });
     };
+
+    // Reprocess when output format changes
+    useEffect(() => {
+        if (directoryName && outputContent) {
+            reprocessWithIgnorePatterns({
+                ignorePatterns,
+                maxFileSize,
+                outputFormat,
+                includeTree,
+            });
+        }
+    }, [outputFormat]);
 
     const handleFileClick = (filePath: string) => {
         // Scroll to the file in the output panel
