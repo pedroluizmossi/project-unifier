@@ -3,144 +3,36 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    -webkit-tap-highlight-color: transparent;
-  }
   body {
-    @apply font-sans;
+    @apply bg-slate-950 text-slate-200 font-sans antialiased overflow-hidden;
   }
 }
 
-/* Font and background */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #020617;
-    color: #e2e8f0;
-    background-image:
-        linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
-/* Custom scrollbar for a cleaner look */
+/* Scrollbar sutil e moderna */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: transparent;
+    @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1; /* slate-300 */
-    border-radius: 10px;
-    border: 2px solid #f1f5f9; /* slate-100 */
-}
-.dark ::-webkit-scrollbar-thumb {
-    background: #475569; /* slate-600 */
-    border-color: #1e293b; /* slate-800 */
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* slate-400 */
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-    background: #64748b; /* slate-500 */
+    @apply bg-slate-700 rounded-full hover:bg-slate-600 transition-colors;
 }
 
-/* Gradient text utility */
-.gradient-text {
-    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-fill-color: transparent;
+/* Utilitários de Layout */
+.layout-shell {
+    @apply flex h-screen w-full overflow-hidden items-stretch;
 }
 
-/* Glassmorphism card */
-.glass-card {
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.1);
+.sidebar-panel {
+    @apply w-80 h-full flex-shrink-0 flex flex-col border-r border-slate-800 bg-slate-900/50 backdrop-blur-sm transition-all duration-300;
 }
 
-/* Feature card hover effect */
-.feature-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-.feature-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 20px 40px -10px rgba(56, 189, 248, 0.1);
+.main-content {
+    @apply flex-1 flex flex-col min-w-0 bg-slate-950 relative overflow-hidden;
 }
 
-/* Spinner animation */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-/* Copied animation */
-@keyframes fade-in-out {
-  0%, 100% {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  10%, 90% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.copied-feedback {
-  animation: fade-in-out 2s ease-in-out;
-}
-
-/* Code block container */
-.code-block-container {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-}
-
-/* Tab button styles */
-.tab-button {
-    transition: all 0.2s ease-in-out;
-    border-bottom: 2px solid transparent;
-}
-.tab-button.active {
-    color: #38bdf8;
-    border-bottom-color: #38bdf8;
-}
-
-/* Hero background and grid background */
-.hero-bg {
-    background-image: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.1), transparent 60%);
-}
-.grid-bg {
-    background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
-/* Custom PrismJS styles for code blocks */
-pre[class*="language-"] {
-    background: transparent !important;
-    padding: 1.25rem !important;
-    margin: 0 !important;
-    padding-top: 3.5rem !important;
-}
-
-/* Copy button for code blocks */
-.copy-btn {
-    transition: all 0.2s ease;
-}
-
-/* Banner glow effect */
-.header-banner-glow {
-    box-shadow: 0 4px 32px 0 rgba(56,189,248,0.10), 0 1.5px 0 0 rgba(129,140,248,0.10) inset;
-    position: relative;
-    z-index: 1;
+.panel-container {
+    @apply bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col;
 }

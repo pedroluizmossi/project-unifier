@@ -1,13 +1,16 @@
-import React from 'https://esm.sh/react@19.1.0';
-import { createRoot } from 'https://esm.sh/react-dom@19.1.0/client';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './components/App.tsx';
+import TranslationProvider from './components/TranslationProvider.tsx';
 
 const container = document.getElementById('root');
 if (container) {
     const root = createRoot(container);
     root.render(
         <React.StrictMode>
-            <App />
+            <TranslationProvider>
+                <App />
+            </TranslationProvider>
         </React.StrictMode>
     );
 } else {

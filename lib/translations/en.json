@@ -1,0 +1,110 @@
+{
+  "hero": {
+    "badge": "✨ Powerful & Privacy-First",
+    "title": "Transform Your Code into",
+    "titleHighlight": "AI-Ready Context",
+    "description": "Instantly convert your entire codebase into unified context files optimized for LLMs, code reviews, and documentation. All processing happens locally—your code never leaves your device.",
+    "ctaPrimary": "Get Started Now",
+    "ctaSecondary": "Learn More",
+    "trustBadges": {
+      "local": "100% Local",
+      "fast": "Lightning Fast",
+      "ai": "AI-Optimized"
+    }
+  },
+  "features": {
+    "title": "Powerful Features",
+    "description": "Everything you need to prepare code for AI analysis, documentation, and collaboration",
+    "localProcessing": {
+      "title": "Local Processing",
+      "description": "All processing happens in your browser. Your code never leaves your device."
+    },
+    "flexibleFiltering": {
+      "title": "Flexible Filtering",
+      "description": "Customize ignore patterns and file size limits to control exactly what gets included."
+    },
+    "multipleFormats": {
+      "title": "Multiple Formats",
+      "description": "Export as Markdown with optional directory tree or structured JSON."
+    },
+    "fastProcessing": {
+      "title": "Fast Processing",
+      "description": "Instantly transform large projects into unified context files."
+    }
+  },
+  "useCases": {
+    "title": "Real-World Use Cases",
+    "description": "See how developers use Project Unifier to streamline their workflow",
+    "aiAnalysis": {
+      "title": "AI Code Analysis",
+      "description": "Prepare your entire codebase for LLM analysis and code review"
+    },
+    "documentation": {
+      "title": "Generate Documentation",
+      "description": "Create comprehensive project documentation from your source code"
+    },
+    "codeReview": {
+      "title": "Code Review Prep",
+      "description": "Share project context with reviewers in a single, organized file"
+    },
+    "onboarding": {
+      "title": "Team Onboarding",
+      "description": "Help new team members understand project structure quickly"
+    }
+  },
+  "controls": {
+    "title": "Optimized Input Settings",
+    "ignorePatterns": "Ignore Patterns",
+    "ignorePatternPlaceholder": "e.g. .git",
+    "ignorePatternAdd": "+",
+    "ignorePatternRemove": "×",
+    "ignorePatternNone": "No patterns.",
+    "maxFileSize": "Max File Size",
+    "maxFileSizePlaceholder": "Maximum size",
+    "maxFileSizeHint": "Files larger than this size will be ignored.",
+    "outputFormat": "Output Format",
+    "markdown": "Markdown",
+    "json": "JSON",
+    "includeDirectoryTree": "Include Directory Tree",
+    "includeDirectoryTreeHint": "Add structure visualization",
+    "selectDirectory": "📁 Select Directory"
+  },
+  "directoryStructure": {
+    "title": "Structure",
+    "searchPlaceholder": "Search...",
+    "noResults": "No results",
+    "heavyFiles": "⚠️ Heavy Files",
+    "removeAndIgnore": "Remove and add to ignore patterns",
+    "files": "Files:",
+    "size": "Size:"
+  },
+  "output": {
+    "title": "Unified Output",
+    "copy": "Copy",
+    "download": "Download",
+    "copied": "✓ Copied!",
+    "raw": "Raw",
+    "preview": "Preview",
+    "split": "Split",
+    "generating": "Generating output, please wait...",
+    "selectDirectory": "Select a directory to get started",
+    "stats": {
+      "text": "Text",
+      "binary": "Binary",
+      "large": "Large",
+      "tokens": "Tokens"
+    }
+  },
+  "errors": {
+    "fileSystemAccess": "File System Access API is not supported in your browser",
+    "directoryAccess": "Unable to access the selected directory",
+    "fileRead": "Unable to read file",
+    "invalidInput": "Invalid input provided",
+    "processingFailed": "Processing failed"
+  },
+  "language": {
+    "switcher": "Language",
+    "english": "English",
+    "portuguese": "Português"
+  }
+}
