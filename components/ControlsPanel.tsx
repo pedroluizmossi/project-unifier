@@ -6,8 +6,8 @@ interface ControlsPanelProps {
     setIgnorePatterns: (value: string) => void;
     maxFileSize: number;
     setMaxFileSize: (value: number) => void;
-    outputFormat: 'markdown' | 'json';
-    setOutputFormat: (value: 'markdown' | 'json') => void;
+    outputFormat: 'markdown' | 'json' | 'xml';
+    setOutputFormat: (value: 'markdown' | 'json' | 'xml') => void;
     includeTree: boolean;
     setIncludeTree: (value: boolean) => void;
     onSelectDirectory?: () => void;
@@ -157,6 +157,12 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'json' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
                             >
                                 {t('controls.json')}
+                            </button>
+                            <button 
+                                onClick={() => setOutputFormat('xml')} 
+                                className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'xml' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                {t('controls.xml')}
                             </button>
                         </div>
                     </div>
