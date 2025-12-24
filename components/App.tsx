@@ -1,9 +1,11 @@
-import React, { useState } from 'react'; // Use import normal
+import { useState } from 'react';
 import { DEFAULT_IGNORE_PATTERNS } from '../lib/utils';
 import { useProjectProcessor } from '../hooks/useProjectProcessor';
+import { useTranslation } from '../hooks/useTranslation';
 import ControlsPanel from './ControlsPanel';
 import OutputPanel from './OutputPanel';
 import DirectoryStructurePanel from './DirectoryStructurePanel';
+import LandingPage from './LandingPage';
 
 const App = () => {
     // Configurações
@@ -11,11 +13,9 @@ const App = () => {
     const [maxFileSize, setMaxFileSize] = useState<number>(5120);
     const [outputFormat, setOutputFormat] = useState<'markdown' | 'json'>('markdown');
     const [includeTree, setIncludeTree] = useState(true);
-    
-    // UI State
-    const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-    const { isLoading, statusMessage, outputContent, directoryName, stats, processDirectory, reprocessWithIgnorePatterns } = useProjectProcessor();
+    const { t } = useTranslation();
+    const { isLoading, statusMessage, outputContent, directoryName, stats, processDirectory, reprocessWithIgnorePatterns } = useProjectProcessor(t);
 
     const handleProcess = () => {
         processDirectory({ ignorePatterns, maxFileSize, outputFormat, includeTree });
@@ -99,73 +99,24 @@ const App = () => {
         }
     };
 
-    // -- TELA INICIAL (HERO) --
+    // -- TELA INICIAL (LANDING PAGE) --
     if (!directoryName && !isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-950 text-center px-4">
-                <div className="max-w-2xl space-y-8">
-                    <h1 className="text-5xl font-bold tracking-tight text-white sm:text-7xl">
-                        Project <span className="text-indigo-500">Unifier</span>
-                    </h1>
-                    <p className="text-lg text-slate-400">
-                        Prepare seu código para LLMs. Transforme diretórios complexos em um único arquivo de contexto (Markdown ou JSON) com facilidade.
-                    </p>
-                    <button
-                        onClick={handleProcess}
-                        className="inline-flex items-center justify-center px-8 py-4 text-base font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/25"
-                    >
-                        Selecionar Diretório
-                    </button>
-                    
-                    <div className="grid grid-cols-3 gap-4 pt-8 border-t border-slate-800/50">
-                        <div className="text-slate-500 text-sm">🔒 100% Local</div>
-                        <div className="text-slate-500 text-sm">⚡ Processamento Rápido</div>
-                        <div className="text-slate-500 text-sm">🤖 Otimizado para IA</div>
-                    </div>
-                </div>
-            </div>
-        );
+        return <LandingPage onSelectDirectory={handleProcess} isLoading={isLoading} />;
     }
 
     // -- TELA PRINCIPAL (LAYOUT) --
     return (
         <div className="flex flex-row h-screen w-full overflow-hidden items-stretch bg-slate-950">
             {/* Sidebar da Árvore de Arquivos */}
-            {isSidebarOpen && (
-                <DirectoryStructurePanel
-                    stats={stats}
-                    directoryName={directoryName}
-                    onFileClick={handleFileClick}
-                    onAddToIgnore={handleAddToIgnore}
-                />
-            )}
+            <DirectoryStructurePanel
+                stats={stats}
+                directoryName={directoryName}
+                onFileClick={handleFileClick}
+                onAddToIgnore={handleAddToIgnore}
+            />
 
             {/* Conteúdo Principal */}
             <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-                {/* Header Simplificado */}
-                <header className="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900/50 flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setSidebarOpen(!isSidebarOpen)}
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
-                        >
-                           {/* Ícone de Menu Hamburguer/Toggle */}
-                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                        </button>
-                        <span className="font-medium text-slate-200 truncate">{directoryName}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                         {/* Botão de Reprocessar Rápido */}
-                         <button
-                            onClick={() => reprocessWithIgnorePatterns({ ignorePatterns, maxFileSize, outputFormat, includeTree })}
-                            className="text-xs bg-indigo-600/10 text-indigo-400 border border-indigo-600/20 px-3 py-1.5 rounded-md hover:bg-indigo-600/20 transition-colors"
-                         >
-                            Atualizar Saída
-                         </button>
-                    </div>
-                </header>
-
                 {/* Área de Trabalho Dividida */}
                 <div className="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
                     {/* Painel de Controles (Esquerda, Fixo ou Scrollável) */}
@@ -176,6 +127,7 @@ const App = () => {
                                 maxFileSize={maxFileSize} setMaxFileSize={setMaxFileSize}
                                 outputFormat={outputFormat} setOutputFormat={setOutputFormat}
                                 includeTree={includeTree} setIncludeTree={setIncludeTree}
+                                onSelectDirectory={handleProcess}
                             />
                         </div>
                     </div>

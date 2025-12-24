@@ -48,7 +48,9 @@ interface DirectoryHandleCache {
     name: string;
 }
 
-export const useProjectProcessor = () => {
+type TranslationFunction = (key: string, defaultValue?: string) => string;
+
+export const useProjectProcessor = (t: TranslationFunction) => {
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState('Select a directory to begin.');
     const [outputContent, setOutputContent] = useState('');
@@ -58,7 +60,7 @@ export const useProjectProcessor = () => {
 
     const processDirectory = useCallback(async (settings: ProcessorSettings) => {
         if (!('showDirectoryPicker' in window)) {
-            alert('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge.');
+            alert(t('errors.fileSystemAccess'));
             return;
         }
 
@@ -69,7 +71,7 @@ export const useProjectProcessor = () => {
             setCachedDirHandle({ handle: dirHandle, name: dirHandle.name });
             setOutputContent('');
             setStats(null);
-            setStatusMessage('Collecting files...');
+            setStatusMessage(t('output.generating'));
 
             const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
             const fileHandles = await collectFileHandles(dirHandle, patterns);
@@ -132,14 +134,14 @@ export const useProjectProcessor = () => {
         } catch (error: any) {
             if (error.name !== 'AbortError') {
                 console.error("Error processing directory:", error);
-                setStatusMessage(`An error occurred: ${error.message}`);
+                setStatusMessage(t('errors.processingFailed'));
             } else {
-                 setStatusMessage('Directory selection cancelled.');
+                 setStatusMessage(t('output.selectDirectory'));
             }
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [t]);
 
     const reprocessWithIgnorePatterns = useCallback(async (settings: ProcessorSettings) => {
         if (!cachedDirHandle) return;
@@ -210,14 +212,14 @@ export const useProjectProcessor = () => {
         } catch (error: any) {
             if (error.name !== 'AbortError') {
                 console.error("Error reprocessing directory:", error);
-                setStatusMessage(`An error occurred: ${error.message}`);
+                setStatusMessage(t('errors.processingFailed'));
             } else {
-                setStatusMessage('Reprocessing cancelled.');
+                setStatusMessage(t('output.selectDirectory'));
             }
         } finally {
             setIsLoading(false);
         }
-    }, [cachedDirHandle]);
+    }, [cachedDirHandle, t]);
 
     return {
         isLoading,

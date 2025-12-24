@@ -1,0 +1,110 @@
+{
+  "hero": {
+    "badge": "✨ Poderoso e Privado",
+    "title": "Transforme seu código em",
+    "titleHighlight": "Contexto pronto para IA",
+    "description": "Converta instantaneamente toda sua base de código em arquivos de contexto unificados, otimizados para LLMs, revisão de código e documentação. Todo o processamento acontece localmente — seu código nunca sai do seu dispositivo.",
+    "ctaPrimary": "Começar agora",
+    "ctaSecondary": "Saiba mais",
+    "trustBadges": {
+      "local": "100% Local",
+      "fast": "Extremamente rápido",
+      "ai": "Otimizado para IA"
+    }
+  },
+  "features": {
+    "title": "Recursos poderosos",
+    "description": "Tudo que você precisa para preparar código para análise com IA, documentação e colaboração",
+    "localProcessing": {
+      "title": "Processamento local",
+      "description": "Todo o processamento acontece no seu navegador. Seu código nunca sai do seu dispositivo."
+    },
+    "flexibleFiltering": {
+      "title": "Filtragem flexível",
+      "description": "Personalize padrões de exclusão e limites de tamanho de arquivo para controlar exatamente o que é incluído."
+    },
+    "multipleFormats": {
+      "title": "Múltiplos formatos",
+      "description": "Exporte como Markdown com árvore de diretórios opcional ou JSON estruturado."
+    },
+    "fastProcessing": {
+      "title": "Processamento rápido",
+      "description": "Transforme instantaneamente projetos grandes em arquivos de contexto unificados."
+    }
+  },
+  "useCases": {
+    "title": "Casos de uso reais",
+    "description": "Veja como desenvolvedores usam o Project Unifier para otimizar seu fluxo de trabalho",
+    "aiAnalysis": {
+      "title": "Análise de código com IA",
+      "description": "Prepare toda sua base de código para análise com LLM e revisão de código"
+    },
+    "documentation": {
+      "title": "Gerar documentação",
+      "description": "Crie documentação completa do projeto a partir do seu código-fonte"
+    },
+    "codeReview": {
+      "title": "Preparação para revisão de código",
+      "description": "Compartilhe o contexto do projeto com revisores em um único arquivo organizado"
+    },
+    "onboarding": {
+      "title": "Integração de equipe",
+      "description": "Ajude novos membros da equipe a entender a estrutura do projeto rapidamente"
+    }
+  },
+  "controls": {
+    "title": "Configurações de entrada",
+    "ignorePatterns": "Padrões de exclusão",
+    "ignorePatternPlaceholder": "ex: .git",
+    "ignorePatternAdd": "+",
+    "ignorePatternRemove": "×",
+    "ignorePatternNone": "Nenhum padrão.",
+    "maxFileSize": "Tamanho máximo de arquivo",
+    "maxFileSizePlaceholder": "Tamanho máximo",
+    "maxFileSizeHint": "Arquivos maiores que este tamanho serão ignorados.",
+    "outputFormat": "Formato de saída",
+    "markdown": "Markdown",
+    "json": "JSON",
+    "includeDirectoryTree": "Incluir árvore de diretórios",
+    "includeDirectoryTreeHint": "Adicionar visualização de estrutura",
+    "selectDirectory": "📁 Selecionar diretório"
+  },
+  "directoryStructure": {
+    "title": "Estrutura",
+    "searchPlaceholder": "Pesquisar...",
+    "noResults": "Nenhum resultado",
+    "heavyFiles": "⚠️ Arquivos grandes",
+    "removeAndIgnore": "Remover e adicionar aos padrões de exclusão",
+    "files": "Arquivos:",
+    "size": "Tamanho:"
+  },
+  "output": {
+    "title": "Saída unificada",
+    "copy": "Copiar",
+    "download": "Baixar",
+    "copied": "✓ Copiado!",
+    "raw": "Código",
+    "preview": "Visualização",
+    "split": "Dividido",
+    "generating": "Gerando saída, aguarde...",
+    "selectDirectory": "Selecione um diretório para começar",
+    "stats": {
+      "text": "Texto",
+      "binary": "Binário",
+      "large": "Grande",
+      "tokens": "Tokens"
+    }
+  },
+  "errors": {
+    "fileSystemAccess": "A API de acesso ao sistema de arquivos não é suportada no seu navegador",
+    "directoryAccess": "Não foi possível acessar o diretório selecionado",
+    "fileRead": "Não foi possível ler o arquivo",
+    "invalidInput": "Entrada inválida",
+    "processingFailed": "Falha no processamento"
+  },
+  "language": {
+    "switcher": "Idioma",
+    "english": "English",
+    "portuguese": "Português"
+  }
+}

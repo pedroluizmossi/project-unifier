@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface ControlsPanelProps {
     ignorePatterns: string;
@@ -9,14 +10,17 @@ interface ControlsPanelProps {
     setOutputFormat: (value: 'markdown' | 'json') => void;
     includeTree: boolean;
     setIncludeTree: (value: boolean) => void;
+    onSelectDirectory?: () => void;
 }
 
 const ControlsPanel: React.FC<ControlsPanelProps> = ({
     ignorePatterns, setIgnorePatterns,
     maxFileSize, setMaxFileSize,
     outputFormat, setOutputFormat,
-    includeTree, setIncludeTree
+    includeTree, setIncludeTree,
+    onSelectDirectory
 }) => {
+    const { t } = useTranslation();
     const [newPattern, setNewPattern] = React.useState('');
     const [sizeUnit, setSizeUnit] = React.useState<'KB' | 'MB' | 'GB'>('KB');
 
@@ -57,27 +61,27 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                         <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                     </svg>
                 </button>
-                <h3 className="text-lg font-semibold text-white">Configurações de Entrada Otimizadas</h3>
+                <h3 className="text-lg font-semibold text-white">{t('controls.title')}</h3>
             </div>
 
             <div className="space-y-8">
                 {/* Ignore Patterns Section */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Ignore Patterns</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">{t('controls.ignorePatterns')}</label>
                     <div className="flex gap-2 mb-2">
                         <input 
                             type="text" 
                             value={newPattern}
                             onChange={(e) => setNewPattern(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddPattern()}
-                            placeholder="ex: .git"
+                            placeholder={t('controls.ignorePatternPlaceholder')}
                             className="flex-1 bg-slate-800/50 border border-slate-600 rounded px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         />
                         <button 
                             onClick={handleAddPattern}
                             className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
                         >
-                            +
+                            {t('controls.ignorePatternAdd')}
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-900/50 rounded border border-slate-700/50 max-h-48 overflow-y-auto">
@@ -87,21 +91,21 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 <button 
                                     onClick={() => handleRemovePattern(pattern)}
                                     className="text-slate-400 hover:text-red-400 focus:outline-none flex-shrink-0"
-                                    title="Remover"
+                                    title={t('controls.ignorePatternRemove')}
                                 >
-                                    ×
+                                    {t('controls.ignorePatternRemove')}
                                 </button>
                             </div>
                         ))}
                         {(!ignorePatterns || !ignorePatterns.trim()) && (
-                            <span className="text-slate-500 text-xs italic col-span-2 p-1">Nenhum padrão.</span>
+                            <span className="text-slate-500 text-xs italic col-span-2 p-1">{t('controls.ignorePatternNone')}</span>
                         )}
                     </div>
                 </div>
 
                 {/* Max File Size Section */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Max File Size</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">{t('controls.maxFileSize')}</label>
                     <div className="relative rounded-md shadow-sm">
                         <div className="flex">
                             <input
@@ -109,7 +113,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 value={displaySize}
                                 onChange={(e) => handleSizeChange(Number(e.target.value))}
                                 className="block w-full rounded-l-lg bg-slate-800/50 border border-slate-600 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Tamanho máximo"
+                                placeholder={t('controls.maxFileSizePlaceholder')}
                             />
                             <select
                                 value={sizeUnit}
@@ -133,34 +137,34 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 <option value="GB">GB</option>
                             </select>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">Arquivos maiores que este tamanho serão ignorados.</p>
+                        <p className="mt-1 text-xs text-slate-500">{t('controls.maxFileSizeHint')}</p>
                     </div>
                 </div>
 
                 {/* Output Format & Tree */}
                 <div className="grid grid-cols-1 gap-6 pt-4 border-t border-slate-700/50">
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Output Format</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">{t('controls.outputFormat')}</label>
                         <div className="flex rounded-lg shadow-sm bg-slate-800/50 p-1 border border-slate-600">
                             <button 
                                 onClick={() => setOutputFormat('markdown')} 
                                 className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'markdown' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
                             >
-                                Markdown
+                                {t('controls.markdown')}
                             </button>
                             <button 
                                 onClick={() => setOutputFormat('json')} 
                                 className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'json' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
                             >
-                                JSON
+                                {t('controls.json')}
                             </button>
                         </div>
                     </div>
 
                     <div className={`flex items-center justify-between p-3 rounded-lg border border-slate-700/50 bg-slate-800/30 ${outputFormat === 'json' ? 'opacity-50 pointer-events-none' : ''}`}>
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-300">Include Directory Tree</span>
-                            <span className="text-xs text-slate-500">Add structure visualization</span>
+                            <span className="text-sm font-medium text-slate-300">{t('controls.includeDirectoryTree')}</span>
+                            <span className="text-xs text-slate-500">{t('controls.includeDirectoryTreeHint')}</span>
                         </div>
                         <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                             <input 
@@ -181,6 +185,13 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                         </div>
                     </div>
                 </div>
+
+                <button
+                        onClick={onSelectDirectory}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        {t('controls.selectDirectory')}
+                    </button>
             </div>
         </div>
     );

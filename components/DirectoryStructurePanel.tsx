@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ProcessorStatus } from '../lib/utils.ts';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface DirectoryStructurePanelProps {
     stats: ProcessorStatus | null;
@@ -169,9 +170,9 @@ const DirectoryStructurePanel: React.FC<DirectoryStructurePanelProps> = ({
     onFileClick,
     onAddToIgnore,
 }) => {
+    const { t } = useTranslation();
     const [treeSearch, setTreeSearch] = useState('');
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-    const [ignoredFilesInSession, setIgnoredFilesInSession] = useState<Set<string>>(new Set());
 
     const hasFiles = Boolean(stats?.files && stats.files.length > 0);
     const totalSize = useMemo(() => {
@@ -206,6 +207,20 @@ const DirectoryStructurePanel: React.FC<DirectoryStructurePanelProps> = ({
         setExpandedNodes(nextExpanded);
         setTreeSearch('');
     }, [treeData]);
+
+    // Arquivos com muitos tokens - DEVE estar antes de qualquer return
+    const largeTokenFiles = useMemo(() => {
+        if (!stats?.files) return [];
+        return stats.files
+            .map(f => ({
+                name: f.name,
+                size: f.size,
+                tokens: estimateTokens(f.size)
+            }))
+            .filter(f => f.tokens > 5000)
+            .sort((a, b) => b.tokens - a.tokens)
+            .slice(0, 5);
+    }, [stats?.files]);
 
     const searchValue = treeSearch.trim();
     const searchLower = searchValue.toLowerCase();
@@ -295,13 +310,13 @@ const DirectoryStructurePanel: React.FC<DirectoryStructurePanelProps> = ({
     <aside className="w-80 flex-shrink-0 flex flex-col border-r border-slate-800 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
         <div className="flex flex-col h-full w-full overflow-hidden relative">
             <div className="p-4 border-b border-slate-800 flex-shrink-0">
-                 <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Estrutura</h2>
+                 <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">{t('directoryStructure.title')}</h2>
                  <div className="relative mt-2">
                         <input
                             type="text"
                             value={treeSearch}
                             onChange={(e) => setTreeSearch(e.target.value)}
-                            placeholder="Pesquisar..."
+                            placeholder={t('directoryStructure.searchPlaceholder')}
                             className="w-full pl-8 pr-8 py-2 text-xs bg-slate-900/70 border border-slate-800/80 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
                         />
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -325,15 +340,41 @@ const DirectoryStructurePanel: React.FC<DirectoryStructurePanelProps> = ({
                         renderTreeNode(filteredTree, 0)
                     ) : (
                         <div className="px-2 py-8 text-center text-xs text-slate-500">
-                            Nenhum resultado
+                            {t('directoryStructure.noResults')}
                         </div>
                     )}
             </div>
 
+            {/* Seção de Arquivos com Muitos Tokens */}
+            {largeTokenFiles.length > 0 && !treeSearch && (
+                <div className="border-t border-slate-800 bg-slate-900/60 p-3 flex-shrink-0">
+                    <h3 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">{t('directoryStructure.heavyFiles')}</h3>
+                    <div className="space-y-1.5">
+                        {largeTokenFiles.map((file) => (
+                            <div key={file.name} className="text-xs bg-slate-800/50 rounded p-2 border border-red-500/20 hover:border-red-500/50 transition-colors group">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="truncate text-slate-200 font-mono text-[10px]">{file.name.split('/').pop()}</div>
+                                        <div className="text-red-400 font-semibold mt-1">{file.tokens.toLocaleString()}t</div>
+                                    </div>
+                                    <button
+                                        onClick={() => onAddToIgnore?.(file.name)}
+                                        className="text-slate-400 hover:text-red-400 focus:outline-none flex-shrink-0 font-bold text-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title={t('directoryStructure.removeAndIgnore')}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Stats do rodapé da árvore */}
             <div className="p-3 border-t border-slate-800 bg-slate-900/30 text-xs flex-shrink-0">
-                <div className="font-semibold">Arquivos: <span className="text-cyan-300 text-lg">{stats?.files?.length ?? 0}</span></div>
-                <div className="font-semibold">Tamanho: <span className="text-cyan-300 text-lg">{formatBytes(totalSize)}</span></div>
+                <div className="font-semibold">{t('directoryStructure.files')} <span className="text-cyan-300 text-lg">{stats?.files?.length ?? 0}</span></div>
+                <div className="font-semibold">{t('directoryStructure.size')} <span className="text-cyan-300 text-lg">{formatBytes(totalSize)}</span></div>
             </div>
         </div>
     </aside>
