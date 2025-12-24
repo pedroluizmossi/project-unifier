@@ -31,10 +31,10 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     useEffect(() => {
         if (outputFormat === 'json') {
             setViewMode('raw');
-        } else if (outputFormat === 'markdown' && viewMode === 'raw') {
+        } else if (outputFormat === 'markdown') {
             setViewMode('split');
         }
-    }, [outputFormat, viewMode]);
+    }, [outputFormat]);
 
     const handleCopy = () => {
         if (!outputContent) return;
