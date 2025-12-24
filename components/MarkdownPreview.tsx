@@ -8,13 +8,13 @@ interface MarkdownPreviewProps {
 
 const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
     const sanitizedHtml = useMemo(() => {
-        const rawHtml = marked.parseInline(content, { breaks: true, gfm: true });
-        return DOMPurify.sanitize(rawHtml);
+        const rawHtml = marked.parse(content, { breaks: true, gfm: true });
+        return DOMPurify.sanitize(rawHtml as string);
     }, [content]);
 
     return (
         <div
-            className="prose prose-slate dark:prose-invert max-w-none p-4"
+            className="prose prose-slate dark:prose-invert max-w-full markdown-preview p-4"
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
         />
     );

@@ -104,6 +104,42 @@ body {
     border: 1px solid #334155;
 }
 
+/* Markdown preview constraints to avoid horizontal overflow */
+.markdown-preview {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.markdown-preview img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+.markdown-preview table {
+    width: 100%;
+    table-layout: auto;
+    overflow-wrap: anywhere;
+    border-collapse: collapse;
+}
+.markdown-preview pre,
+.markdown-preview code {
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.markdown-preview .prose pre {
+    overflow-x: auto;
+}
+
+/* Additional defensive rules for OutputPanel */
+.output-panel * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.output-panel pre, .output-panel code {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 /* Tab button styles */
 .tab-button {
     transition: all 0.2s ease-in-out;
@@ -143,4 +179,44 @@ pre[class*="language-"] {
     box-shadow: 0 4px 32px 0 rgba(56,189,248,0.10), 0 1.5px 0 0 rgba(129,140,248,0.10) inset;
     position: relative;
     z-index: 1;
+}
+
+:root {
+    --sidebar-width: 24rem; /* 384px default (w-96) */
+    --sidebar-collapsed-width: 4rem; /* 64px default (w-16) */
+    --sidebar-transition: 220ms;
+}
+
+/* Utility to apply left padding matching the sidebar width with transition */
+.with-sidebar {
+    padding-left: var(--sidebar-width);
+    box-sizing: border-box;
+    transition: padding-left var(--sidebar-transition) ease;
+}
+.with-sidebar.collapsed {
+    padding-left: var(--sidebar-collapsed-width);
+}
+
+/* Responsive: hide sidebar on very small screens and remove left padding */
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 0px;
+        --sidebar-collapsed-width: 0px;
+    }
+    .with-sidebar {
+        padding-left: 0;
+    }
+    /* Hide the fixed sidebar on small screens (use overlay toggles if needed)
+         so controls are always visible and not obscured */
+    .directory-sidebar {
+        transform: translateX(-110%);
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
+/* Prevent OutputPanel from creating horizontal overflow */
+.output-panel {
+    overflow-x: hidden;
+    max-width: 100%;
 }

@@ -34,6 +34,7 @@ export type ProcessorStatus = {
     binary: number;
     large: number;
     tokens: number;
+    files?: { name: string; size: number }[];
 };
 
 // --- CONSTANTS AND CONFIGURATIONS ---
