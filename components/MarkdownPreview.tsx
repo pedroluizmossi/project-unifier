@@ -1,6 +1,6 @@
-import React, { useMemo } from 'https://esm.sh/react@19.1.0';
-import DOMPurify from 'https://esm.sh/dompurify@3.2.6';
-import { marked } from 'https://esm.sh/marked@15.0.12';
+import React, { useMemo } from 'react';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 interface MarkdownPreviewProps {
     content: string;

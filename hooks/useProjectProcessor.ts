@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'https://esm.sh/react@19.1.0';
+import { useState, useCallback } from 'react';
 import {
     FileInfo,
     CategorizedFiles,

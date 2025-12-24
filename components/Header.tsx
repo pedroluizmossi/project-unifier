@@ -1,4 +1,4 @@
-import React from 'https://esm.sh/react@19.1.0';
+import React from 'react';
 
 const Header = () => (
     <header className="w-full py-3 px-0 mb-8 rounded-b-2xl bg-[rgba(15,23,42,0.65)] backdrop-blur-xl border-b border-sky-800/40 header-banner-glow">

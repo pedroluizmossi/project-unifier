@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'https://esm.sh/react@19.1.0';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ProcessorStatus } from '../lib/utils.ts';
 import MarkdownPreview from './MarkdownPreview.tsx';
 

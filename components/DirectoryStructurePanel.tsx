@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'https://esm.sh/react@19.1.0';
+import React, { useMemo, useState } from 'react';
 import { ProcessorStatus } from '../lib/utils.ts';
 
 interface DirectoryStructurePanelProps {
@@ -292,100 +292,52 @@ const DirectoryStructurePanel: React.FC<DirectoryStructurePanelProps> = ({
     if (!hasFiles) return null;
 
     return (
-        <aside
-            className="directory-sidebar fixed left-0 top-0 h-screen flex flex-col border-r border-slate-800/60 bg-gradient-to-b from-slate-900/95 to-slate-950/95 shadow-lg transition-all duration-300 z-40 w-96"
-        >
-            <div className="flex items-center px-3 py-3 border-b border-slate-800/60 justify-between">
-                <span className="text-xs uppercase tracking-wide text-slate-400">
-                    Estrutura
-                </span>
-            </div>
-
-            <div className="px-3 pt-3 pb-2">
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={treeSearch}
-                        onChange={(e) => setTreeSearch(e.target.value)}
-                        placeholder="Pesquisar..."
-                        className="w-full pl-8 pr-8 py-2 text-xs bg-slate-900/70 border border-slate-800/80 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    {treeSearch && (
-                        <button
-                            onClick={() => setTreeSearch('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex-1 min-h-0 px-2 py-2 overflow-y-auto">
-                {filteredTree ? (
-                    renderTreeNode(filteredTree, 0)
-                ) : (
-                    <div className="px-2 py-8 text-center text-xs text-slate-500">
-                        Nenhum resultado
+    <aside className="w-80 flex-shrink-0 flex flex-col border-r border-slate-800 bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
+        <div className="flex flex-col h-full w-full overflow-hidden relative">
+            <div className="p-4 border-b border-slate-800 flex-shrink-0">
+                 <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Estrutura</h2>
+                 <div className="relative mt-2">
+                        <input
+                            type="text"
+                            value={treeSearch}
+                            onChange={(e) => setTreeSearch(e.target.value)}
+                            placeholder="Pesquisar..."
+                            className="w-full pl-8 pr-8 py-2 text-xs bg-slate-900/70 border border-slate-800/80 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        {treeSearch && (
+                            <button
+                                onClick={() => setTreeSearch('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
-                )}
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2 min-h-0">
+                 {filteredTree ? (
+                        renderTreeNode(filteredTree, 0)
+                    ) : (
+                        <div className="px-2 py-8 text-center text-xs text-slate-500">
+                            Nenhum resultado
+                        </div>
+                    )}
             </div>
 
-            <div className="px-3 py-3 border-t border-slate-800/60 text-xs text-slate-300 space-y-2 max-h-48 overflow-y-auto">
-                <div className="font-semibold text-sm mb-2">Arquivos mais caros:</div>
-                {stats?.files && stats.files.length > 0 ? (
-                    (() => {
-                        const sortedByTokens = [...stats.files]
-                            .filter((f) => !ignoredFilesInSession.has(f.name))
-                            .sort((a, b) => estimateTokens(b.size) - estimateTokens(a.size))
-                            .slice(0, 5);
-                        
-                        return sortedByTokens.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-900/50 rounded border border-slate-700/50">
-                                {sortedByTokens.map((file) => {
-                                    const tokens = estimateTokens(file.size);
-                                    const tokenColor = tokens > 25000 ? 'text-red-400' : 
-                                                      tokens > 15000 ? 'text-yellow-400' :
-                                                      tokens > 5000 ? 'text-blue-400' : 'text-green-400';
-                                    
-                                    return (
-                                        <div key={file.name} className="flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 border border-slate-600">
-                                            <div className="flex flex-col min-w-0 flex-1">
-                                                <span className="truncate">{file.name.split('/').pop()}</span>
-                                                <span className={`text-[10px] ${tokenColor}`}>{tokens.toLocaleString()}t</span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setIgnoredFilesInSession((prev) => new Set([...prev, file.name]));
-                                                    onAddToIgnore?.(file.name);
-                                                }}
-                                                className="text-slate-400 hover:text-red-400 focus:outline-none flex-shrink-0"
-                                                title="Remover"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="text-[10px] text-slate-500 italic p-2.5 bg-slate-900/50 rounded border border-slate-700/50">Nenhum arquivo carregado</div>
-                        );
-                    })()
-                ) : null}
-            </div>
-
-            <div className="px-3 py-3 border-t border-slate-800/60 text-base text-slate-200 space-y-2">
+            {/* Stats do rodapé da árvore */}
+            <div className="p-3 border-t border-slate-800 bg-slate-900/30 text-xs flex-shrink-0">
                 <div className="font-semibold">Arquivos: <span className="text-cyan-300 text-lg">{stats?.files?.length ?? 0}</span></div>
                 <div className="font-semibold">Tamanho: <span className="text-cyan-300 text-lg">{formatBytes(totalSize)}</span></div>
             </div>
-        </aside>
-    );
+        </div>
+    </aside>
+);
 };
 
 export default DirectoryStructurePanel;

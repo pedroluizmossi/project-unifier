@@ -1,4 +1,4 @@
-import React from 'https://esm.sh/react@19.1.0';
+import React from 'react';
 
 const Footer = () => (
     <footer className="w-full py-4 px-4 sm:px-6 lg:px-8 border-t border-slate-800/50">
