@@ -8,7 +8,7 @@ interface MarkdownPreviewProps {
 
 const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
     const sanitizedHtml = useMemo(() => {
-        const rawHtml = marked.parse(content, { breaks: true, gfm: true });
+        const rawHtml = marked.parseInline(content, { breaks: true, gfm: true });
         return DOMPurify.sanitize(rawHtml);
     }, [content]);
 
