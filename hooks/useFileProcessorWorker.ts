@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { WorkerMessage, WorkerResult } from '../lib/fileProcessorWorker';
+import FileProcessorWorker from '../lib/fileProcessorWorker?worker';
 
 interface FileProcessingResult {
     path: string;
@@ -38,10 +39,8 @@ export const useFileProcessorWorker = (options: UseFileProcessorWorkerOptions = 
         if (isInitializedRef.current) return;
 
         try {
-            // Create worker from the worker file
-            const workerCode = new URL('../lib/fileProcessorWorker.ts', import.meta.url);
-            
-            workerRef.current = new Worker(workerCode, { type: 'module' });
+            // Create worker using Vite's worker import
+            workerRef.current = new FileProcessorWorker();
 
             workerRef.current.onmessage = (event: MessageEvent<WorkerResult>) => {
                 const { type, processed, total, filesData, error } = event.data;

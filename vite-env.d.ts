@@ -1,5 +1,13 @@
 /// <reference types="vite/client" />
 
+// Worker module declaration for Vite
+declare module '*?worker' {
+    const workerConstructor: {
+        new (): Worker;
+    };
+    export default workerConstructor;
+}
+
 // --- FILE SYSTEM ACCESS API TYPE DEFINITIONS ---
 
 declare global {
