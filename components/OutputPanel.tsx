@@ -1,5 +1,6 @@
-import React, { useState } from 'https://esm.sh/react@19.1.0';
+import React, { useEffect, useState } from 'https://esm.sh/react@19.1.0';
 import { ProcessorStatus } from '../lib/utils.ts';
+import MarkdownPreview from './MarkdownPreview.tsx';
 
 interface OutputPanelProps {
     isLoading: boolean;
@@ -25,6 +26,15 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     isLoading, statusMessage, stats, outputContent, directoryName, outputFormat
 }) => {
     const [copied, setCopied] = useState(false);
+    const [viewMode, setViewMode] = useState<'raw' | 'preview' | 'split'>('split');
+
+    useEffect(() => {
+        if (outputFormat === 'json') {
+            setViewMode('raw');
+        } else if (outputFormat === 'markdown' && viewMode === 'raw') {
+            setViewMode('split');
+        }
+    }, [outputFormat, viewMode]);
 
     const handleCopy = () => {
         if (!outputContent) return;
@@ -70,6 +80,25 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                     <>
                         <div className="flex items-center gap-2 p-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-t-lg">
                             <span className={`text-xs text-green-600 dark:text-green-400 transition-opacity ${copied ? 'copied-feedback' : 'opacity-0'}`}>Copied!</span>
+                            {outputFormat === 'markdown' && (
+                                <div className="flex items-center gap-1">
+                                    {(['raw', 'preview', 'split'] as const).map((mode) => (
+                                        <button
+                                            key={mode}
+                                            onClick={() => setViewMode(mode)}
+                                            className={`text-xs font-medium rounded-md px-2.5 py-1 border shadow transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+                                                viewMode === mode
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                    : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-600'
+                                            }`}
+                                        >
+                                            {mode === 'raw' && 'Raw'}
+                                            {mode === 'preview' && 'Preview'}
+                                            {mode === 'split' && 'Split'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="flex gap-2 ml-auto">
                                 <button
                                     onClick={handleCopy}
@@ -88,7 +117,22 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                             </div>
                         </div>
                         <div className="flex-grow min-h-[350px] max-h-[600px] overflow-y-auto rounded-b-lg bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-                            <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
+                            {outputFormat === 'markdown' && viewMode !== 'raw' ? (
+                                viewMode === 'preview' ? (
+                                    <MarkdownPreview content={outputContent} />
+                                ) : (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-700 h-full">
+                                        <div className="overflow-y-auto max-h-[600px]">
+                                            <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
+                                        </div>
+                                        <div className="overflow-y-auto max-h-[600px]">
+                                            <MarkdownPreview content={outputContent} />
+                                        </div>
+                                    </div>
+                                )
+                            ) : (
+                                <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
+                            )}
                         </div>
                     </>
                 ) : (

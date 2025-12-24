@@ -4,7 +4,6 @@ import { useProjectProcessor } from '../hooks/useProjectProcessor.ts';
 import Header from './Header.tsx';
 import ControlsPanel from './ControlsPanel.tsx';
 import OutputPanel from './OutputPanel.tsx';
-import MarkdownPreview from './MarkdownPreview.tsx';
 import Footer from './Footer.tsx';
 import FileStatsPanel from './FileStatsPanel.tsx';
 
