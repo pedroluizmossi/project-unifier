@@ -145,8 +145,6 @@ export const useProjectProcessor = (t: TranslationFunction) => {
 
         try {
             setIsLoading(true);
-            setOutputContent('');
-            setStats(null);
             setStatusMessage('Recalculating with updated filters...');
 
             const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');

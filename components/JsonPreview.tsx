@@ -16,16 +16,9 @@ const JsonPreview: React.FC<JsonPreviewProps> = ({ content }) => {
         }
     }, [content]);
 
-    if (jsonData === null) {
-        return (
-            <div className="p-4 text-red-400">
-                <p>Invalid JSON</p>
-            </div>
-        );
-    }
-
-    // Expand only first level on mount
+    // Expand only first level on mount - must be before any conditional returns
     useEffect(() => {
+        if (jsonData === null) return;
         const firstLevelPaths = new Set<string>();
         firstLevelPaths.add(''); // Add root path
         if (Array.isArray(jsonData)) {
@@ -39,6 +32,14 @@ const JsonPreview: React.FC<JsonPreviewProps> = ({ content }) => {
         }
         setExpandedPaths(firstLevelPaths);
     }, [jsonData]);
+
+    if (jsonData === null) {
+        return (
+            <div className="p-4 text-red-400">
+                <p>Invalid JSON</p>
+            </div>
+        );
+    }
 
     const togglePath = (path: string) => {
         const newSet = new Set(expandedPaths);
