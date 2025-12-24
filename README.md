@@ -1,63 +1,64 @@
-# Project Unifier 
-## 🌐 https://pedroluizmossi.github.io/project-unifier/
+# Project Unifier
 
-<img width="1374" height="1309" alt="image" src="https://github.com/user-attachments/assets/14e4afb7-b2b1-4eea-b667-d5e42844c548" />
+🌐 **Live Demo:** https://pedroluizmossi.github.io/project-unifier/
 
-Project Unifier is a tool that allows you to select a local directory and generate a single, context-rich file (Markdown or JSON) containing the structure and contents of your project. This is especially useful for preparing codebases for Large Language Models (LLMs), code review, or documentation.
+Transform local project directories into unified, context-rich files (Markdown, JSON, or XML) optimized for Large Language Models, code review, and documentation.
 
 ## Features
 
-- Select any local directory using the browser (File System Access API)
-- Ignore files and folders using customizable patterns (like `.gitignore`)
-- Limit the maximum file size to include
-- Choose output format: **Markdown** (with optional directory tree) or **JSON**
-- Download or copy the unified output easily
-- See statistics: number of text, binary, large files, and estimated tokens
-- Modern, responsive, and dark-themed UI
+- 📁 **Directory Selection** — Browser-based file system access (File System Access API)
+- 🔍 **Flexible Filtering** — Customizable ignore patterns (`.gitignore`-style syntax)
+- 📏 **File Size Control** — Limit maximum file size for inclusion
+- 📄 **Multiple Output Formats** — Markdown (with optional directory tree), JSON, or XML
+- 📊 **Statistics** — Track text files, binary files, large files, and token estimates
+- 📋 **Easy Export** — Download or copy unified output
+- 🌍 **Multi-language** — English and Portuguese support
+- 🔒 **Privacy-First** — All processing happens locally in the browser
+
+## Tech Stack
+
+- **React 19** — Functional components with hooks
+- **TypeScript** — Strict mode enabled
+- **Vite** — Fast build tool
+- **Tailwind CSS** — Dark theme UI
+- **Web Workers** — Background file processing
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or newer recommended)
-- A modern browser (Chrome or Edge) that supports the File System Access API
+- [Node.js](https://nodejs.org/) v18+
+- Modern browser with File System Access API support (Chrome, Edge)
 
-### Running Locally
+### Development
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
+Open http://localhost:5173/
 
-3. **Open your browser and go to:**
-   ```
-   http://localhost:5173/
-   ```
-
-### Building for Production
+### Production Build
 
 ```bash
 npm run build
 ```
 
-The output will be in the `dist/` folder.
+Output in `dist/` folder.
 
 ## Usage
 
-1. Click **Select Directory & Unify**.
-2. Choose the root folder of your project.
-3. Adjust ignore patterns, file size limit, and output format as needed.
-4. Copy or download the generated output from the right panel.
+1. Click **Select Directory & Unify**
+2. Choose your project folder
+3. Adjust ignore patterns, file size limit, and output format
+4. Copy or download the generated output
 
 ## Notes
 
-- The app runs entirely in your browser. No files are uploaded to any server.
-- Large/binary files are not included in the output, but their metadata (name, size, hash) is.
+- Runs entirely in your browser — no files uploaded to any server
+- Large/binary files excluded but tracked in metadata
+- Uses Web Workers for non-blocking file processing
 
 ## License
 
