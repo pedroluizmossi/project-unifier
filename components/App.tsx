@@ -11,7 +11,7 @@ const App = () => {
     // Configurações
     const [ignorePatterns, setIgnorePatterns] = useState(DEFAULT_IGNORE_PATTERNS.join('\n'));
     const [maxFileSize, setMaxFileSize] = useState<number>(5120);
-    const [outputFormat, setOutputFormat] = useState<'markdown' | 'json' | 'xml'>('markdown');
+    const [outputFormat, setOutputFormat] = useState<'markdown' | 'json' | 'xml'>('xml');
     const [includeTree, setIncludeTree] = useState(true);
 
     const { t } = useTranslation();

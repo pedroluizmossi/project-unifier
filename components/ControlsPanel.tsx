@@ -160,9 +160,12 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                             </button>
                             <button 
                                 onClick={() => setOutputFormat('xml')} 
-                                className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'xml' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                                className={`relative flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'xml' ? 'bg-indigo-600 text-white shadow ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-800' : 'text-slate-400 hover:text-slate-200'}`}
                             >
                                 {t('controls.xml')}
+                                <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                                    ★
+                                </span>
                             </button>
                         </div>
                     </div>
