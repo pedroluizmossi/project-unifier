@@ -412,6 +412,218 @@ export const buildJsonStructure = (filesData: FileInfo[], rootName: string): Pro
     return convertTreeToProjectTree(rawTree, rootName, '');
 };
 
+// --- FOLDER SPLITTING UTILITIES ---
+
+export type FolderStats = {
+    path: string;
+    name: string;
+    size: number;
+    tokens: number;
+    fileCount: number;
+    children: FolderStats[];
+};
+
+export type SplitConfig = {
+    selectedFolders: Set<string>;
+    folderSizeLimitMB: number;
+};
+
+export type SplitOutput = {
+    name: string;
+    folderPath: string;
+    content: string;
+    size: number;
+    tokens: number;
+    fileCount: number;
+};
+
+export const calculateFolderStats = (files: { name: string; size: number }[], rootName: string): FolderStats => {
+    // Build folder structure with accumulated sizes
+    const folderMap = new Map<string, { size: number; tokens: number; fileCount: number; children: Set<string> }>();
+    
+    // Initialize root
+    folderMap.set('', { size: 0, tokens: 0, fileCount: 0, children: new Set() });
+    
+    files.forEach(file => {
+        const parts = file.name.split('/').filter(Boolean);
+        let currentPath = '';
+        
+        // Create all parent directories
+        for (let i = 0; i < parts.length - 1; i++) {
+            const parentPath = currentPath;
+            currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+            
+            if (!folderMap.has(currentPath)) {
+                folderMap.set(currentPath, { size: 0, tokens: 0, fileCount: 0, children: new Set() });
+            }
+            
+            // Add as child of parent
+            const parent = folderMap.get(parentPath)!;
+            parent.children.add(currentPath);
+        }
+        
+        // Add file size to all ancestor folders
+        const fileTokens = Math.ceil(file.size / 3.5);
+        let path = '';
+        parts.slice(0, -1).forEach((part, i) => {
+            path = i === 0 ? part : `${path}/${part}`;
+            const folder = folderMap.get(path);
+            if (folder) {
+                folder.size += file.size;
+                folder.tokens += fileTokens;
+                folder.fileCount += 1;
+            }
+        });
+        
+        // Also add to root
+        const root = folderMap.get('')!;
+        root.size += file.size;
+        root.tokens += fileTokens;
+        root.fileCount += 1;
+    });
+    
+    // Convert to tree structure
+    const buildTree = (path: string, name: string): FolderStats => {
+        const folder = folderMap.get(path) || { size: 0, tokens: 0, fileCount: 0, children: new Set() };
+        const children: FolderStats[] = [];
+        
+        folder.children.forEach(childPath => {
+            const childName = childPath.split('/').pop() || childPath;
+            children.push(buildTree(childPath, childName));
+        });
+        
+        // Sort children by size descending
+        children.sort((a, b) => b.size - a.size);
+        
+        return {
+            path,
+            name,
+            size: folder.size,
+            tokens: folder.tokens,
+            fileCount: folder.fileCount,
+            children,
+        };
+    };
+    
+    return buildTree('', rootName);
+};
+
+export const findLargeFolders = (stats: FolderStats, sizeLimitBytes: number): FolderStats[] => {
+    const largeFolders: FolderStats[] = [];
+    
+    const recurse = (folder: FolderStats) => {
+        if (folder.size >= sizeLimitBytes && folder.path !== '') {
+            largeFolders.push(folder);
+        }
+        folder.children.forEach(recurse);
+    };
+    
+    recurse(stats);
+    return largeFolders.sort((a, b) => b.size - a.size);
+};
+
+export const filterFilesByFolder = (
+    files: FileInfo[],
+    selectedFolders: Set<string>
+): Map<string, FileInfo[]> => {
+    const result = new Map<string, FileInfo[]>();
+    const usedFiles = new Set<string>();
+    
+    // Sort selected folders by path length (longest first) to match most specific folder
+    const sortedFolders = Array.from(selectedFolders).sort((a, b) => b.length - a.length);
+    
+    // Initialize maps for each selected folder
+    sortedFolders.forEach(folder => {
+        result.set(folder, []);
+    });
+    result.set('__remaining__', []);
+    
+    files.forEach(file => {
+        let matched = false;
+        for (const folder of sortedFolders) {
+            if (file.path.startsWith(folder + '/') || file.path === folder) {
+                result.get(folder)!.push(file);
+                usedFiles.add(file.path);
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            result.get('__remaining__')!.push(file);
+        }
+    });
+    
+    return result;
+};
+
+export const generateSplitOutputs = async (
+    filesData: FileInfo[],
+    selectedFolders: Set<string>,
+    dirName: string,
+    settings: {
+        outputFormat: 'markdown' | 'json' | 'xml';
+        includeTree: boolean;
+    }
+): Promise<SplitOutput[]> => {
+    const outputs: SplitOutput[] = [];
+    const filesByFolder = filterFilesByFolder(filesData, selectedFolders);
+    
+    for (const [folderPath, files] of filesByFolder) {
+        if (files.length === 0) continue;
+        
+        const categorized: CategorizedFiles = { text_files: [], binary_files: [], large_files: [] };
+        files.forEach(file => {
+            if (file.type === 'text_file') categorized.text_files.push(file);
+            else if (file.type === 'binary_file') categorized.binary_files.push(file);
+            else categorized.large_files.push(file);
+        });
+        
+        const isRemaining = folderPath === '__remaining__';
+        const outputName = isRemaining ? dirName : folderPath.replace(/\//g, '_');
+        
+        let content = '';
+        if (settings.outputFormat === 'markdown') {
+            content = renderMarkdown({
+                project_name: isRemaining ? dirName : `${dirName}/${folderPath}`,
+                files_data: categorized,
+            });
+        } else if (settings.outputFormat === 'xml') {
+            content = renderXml({
+                project_name: isRemaining ? dirName : `${dirName}/${folderPath}`,
+                files_data: categorized,
+            });
+        } else {
+            const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
+            const jsonTree = buildJsonStructure(allFiles, isRemaining ? dirName : folderPath);
+            content = JSON.stringify({
+                project_name: isRemaining ? dirName : `${dirName}/${folderPath}`,
+                project_tree: jsonTree,
+                metadata: {
+                    generation_timestamp_utc: new Date().toISOString(),
+                    summary: {
+                        text_files: categorized.text_files.length,
+                        binary_files: categorized.binary_files.length,
+                        large_files: categorized.large_files.length,
+                    }
+                }
+            }, null, 2);
+        }
+        
+        const totalSize = files.reduce((sum, f) => sum + (f.size_kb || 0) * 1024, 0);
+        
+        outputs.push({
+            name: outputName,
+            folderPath: isRemaining ? '' : folderPath,
+            content,
+            size: totalSize,
+            tokens: calculateTokens(content),
+            fileCount: files.length,
+        });
+    }
+    
+    return outputs;
+};
+
 // --- BROWSER CAPABILITY DETECTION ---
 
 export type BrowserCapability = 'native' | 'fallback' | 'unsupported';

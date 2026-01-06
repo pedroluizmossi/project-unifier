@@ -37,6 +37,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
     const [outputContent, setOutputContent] = useState('');
     const [directoryName, setDirectoryName] = useState<string | null>(null);
     const [stats, setStats] = useState<ProcessorStatus | null>(null);
+    const [filesData, setFilesData] = useState<FileInfo[]>([]);
     const [cachedDirHandle, setCachedDirHandle] = useState<DirectoryHandleCache | null>(null);
     const [browserCapability, setBrowserCapability] = useState<BrowserCapability>(() => detectBrowserCapability());
 
@@ -119,6 +120,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
             });
 
             setOutputContent(output);
+            setFilesData(filesData);
             setStats({
                 text: categorized.text_files.length,
                 binary: categorized.binary_files.length,
@@ -189,6 +191,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
             });
 
             setOutputContent(output);
+            setFilesData(filesData);
             setStats({
                 text: categorized.text_files.length,
                 binary: categorized.binary_files.length,
@@ -216,6 +219,7 @@ export const useProjectProcessor = (t: TranslationFunction) => {
         outputContent,
         directoryName,
         stats,
+        filesData,
         processDirectory,
         reprocessWithIgnorePatterns,
         browserCapability,

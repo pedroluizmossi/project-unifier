@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ProcessorStatus } from '../lib/utils.ts';
+import JSZip from 'jszip';
+import { ProcessorStatus, FileInfo, generateSplitOutputs } from '../lib/utils.ts';
 import MarkdownPreview from './MarkdownPreview.tsx';
 import JsonPreview from './JsonPreview.tsx';
 import XmlPreview from './XmlPreview.tsx';
@@ -13,6 +14,9 @@ interface OutputPanelProps {
     outputContent: string;
     directoryName: string | null;
     outputFormat: 'markdown' | 'json' | 'xml';
+    selectedFoldersToSplit?: Set<string>;
+    filesData?: FileInfo[];
+    onOpenSplitModal?: () => void;
 }
 
 const StatCard = ({ icon, label, value, tooltip }: { icon: React.ReactNode, label: string, value: string | number, tooltip?: string }) => (
@@ -27,12 +31,16 @@ const StatCard = ({ icon, label, value, tooltip }: { icon: React.ReactNode, labe
 
 
 const OutputPanel: React.FC<OutputPanelProps> = ({
-    isLoading, statusMessage, stats, outputContent, directoryName, outputFormat
+    isLoading, statusMessage, stats, outputContent, directoryName, outputFormat,
+    selectedFoldersToSplit, filesData, onOpenSplitModal
 }) => {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [viewMode, setViewMode] = useState<'raw' | 'preview' | 'split'>('preview');
+
+    const hasSplitSelection = selectedFoldersToSplit && selectedFoldersToSplit.size > 0;
 
     useEffect(() => {
         if (outputFormat === 'json' || outputFormat === 'xml') {
@@ -55,22 +63,82 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         });
     };
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!outputContent) return;
-        setDownloaded(true);
-        setTimeout(() => setDownloaded(false), 2000);
         
-        const blob = new Blob([outputContent], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const extensions: Record<string, string> = { markdown: 'md', json: 'json', xml: 'xml' };
-        const extension = extensions[outputFormat];
-        a.href = url;
-        a.download = `${directoryName || 'project'}_unified_${new Date().toISOString().split('T')[0]}.${extension}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setIsDownloading(true);
+        
+        try {
+            const extensions: Record<string, string> = { markdown: 'md', json: 'json', xml: 'xml' };
+            const extension = extensions[outputFormat];
+            const timestamp = new Date().toISOString().split('T')[0];
+            
+            // If we have split selection and filesData, generate multiple files
+            if (hasSplitSelection && filesData && filesData.length > 0 && directoryName) {
+                const outputs = await generateSplitOutputs(
+                    filesData,
+                    selectedFoldersToSplit!,
+                    directoryName,
+                    { outputFormat, includeTree: true }
+                );
+                
+                const zip = new JSZip();
+                
+                // Add each output file to the zip
+                outputs.forEach((output, index) => {
+                    const fileName = output.folderPath 
+                        ? `${output.name}_unified.${extension}`
+                        : `${directoryName}_main_unified.${extension}`;
+                    zip.file(fileName, output.content);
+                });
+                
+                // Add manifest
+                const manifest = {
+                    project_name: directoryName,
+                    generation_timestamp: new Date().toISOString(),
+                    total_parts: outputs.length,
+                    output_format: outputFormat,
+                    parts: outputs.map(o => ({
+                        name: o.name,
+                        folder_path: o.folderPath || '(root)',
+                        file_count: o.fileCount,
+                        size_bytes: o.size,
+                        estimated_tokens: o.tokens,
+                    }))
+                };
+                zip.file('_manifest.json', JSON.stringify(manifest, null, 2));
+                
+                // Generate and download zip
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${directoryName}_unified_split_${timestamp}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                // Single file download
+                const blob = new Blob([outputContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${directoryName || 'project'}_unified_${timestamp}.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            setDownloaded(true);
+            setTimeout(() => setDownloaded(false), 2000);
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert(t('errors.processingFailed'));
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -84,27 +152,65 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                         </div>
                         {hasFiles && (
                             <div className="flex flex-wrap items-center gap-3">
+                                {/* Split folders button */}
+                                {onOpenSplitModal && (
+                                    <button
+                                        onClick={onOpenSplitModal}
+                                        className={`flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 border transition-all duration-200 ${
+                                            hasSplitSelection
+                                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 hover:bg-amber-500/30'
+                                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                                        }`}
+                                        title={t('output.splitFolders')}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        {hasSplitSelection 
+                                            ? `${selectedFoldersToSplit!.size} ${t('output.foldersSelected')}`
+                                            : t('output.splitFolders')
+                                        }
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleCopy}
+                                    disabled={hasSplitSelection}
                                     className={`flex items-center gap-2 text-sm font-bold rounded-lg px-4 py-2.5 border-2 transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500 ${
-                                        copied
-                                            ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-95'
-                                            : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg active:scale-95'
+                                        hasSplitSelection
+                                            ? 'opacity-50 cursor-not-allowed bg-slate-700 border-slate-600 text-slate-400'
+                                            : copied
+                                                ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-95'
+                                                : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg active:scale-95'
                                     }`}
+                                    title={hasSplitSelection ? t('output.copyDisabledWhenSplit') : ''}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 ${copied ? 'scale-110' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                                     {copied ? t('output.copied') : t('output.copy')}
                                 </button>
                                 <button
                                     onClick={handleDownload}
+                                    disabled={isDownloading}
                                     className={`flex items-center gap-2 text-sm font-bold rounded-lg px-4 py-2.5 border-2 transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 ${
-                                        downloaded
-                                            ? 'bg-blue-500 border-blue-600 text-white shadow-lg scale-95'
-                                            : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg active:scale-95'
+                                        isDownloading
+                                            ? 'opacity-75 cursor-wait'
+                                            : downloaded
+                                                ? 'bg-blue-500 border-blue-600 text-white shadow-lg scale-95'
+                                                : hasSplitSelection
+                                                    ? 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700 hover:shadow-lg active:scale-95'
+                                                    : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg active:scale-95'
                                     }`}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 ${downloaded ? 'scale-110' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/><rect x="5" y="19" width="14" height="2" rx="1" /></svg>
-                                    {downloaded ? t('output.download') : t('output.download')}
+                                    {isDownloading ? (
+                                        <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-200 ${downloaded ? 'scale-110' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/><rect x="5" y="19" width="14" height="2" rx="1" /></svg>
+                                    )}
+                                    {isDownloading 
+                                        ? t('output.downloading')
+                                        : hasSplitSelection 
+                                            ? t('output.downloadZip')
+                                            : t('output.download')
+                                    }
                                 </button>
                             </div>
                         )}

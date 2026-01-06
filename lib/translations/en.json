@@ -83,10 +83,15 @@
     "title": "Unified Output",
     "copy": "Copy",
     "download": "Download",
+    "downloadZip": "Download ZIP",
+    "downloading": "Downloading...",
     "copied": "✓ Copied!",
     "raw": "Raw",
     "preview": "Preview",
     "split": "Split",
+    "splitFolders": "Split Folders",
+    "foldersSelected": "folders selected",
+    "copyDisabledWhenSplit": "Copy is disabled when folders are split. Download as ZIP instead.",
     "generating": "Generating output, please wait...",
     "selectDirectory": "Select a directory to get started",
     "stats": {
@@ -95,6 +100,19 @@
       "large": "Large",
       "tokens": "Tokens"
     }
+  },
+  "folderSplit": {
+    "title": "Split Large Folders",
+    "description": "Your project exceeds 1MB. Select folders to export as separate files for better organization.",
+    "largeFoldersFound": "folders exceed the size limit",
+    "files": "files",
+    "foldersSelected": "folders selected",
+    "willGenerate": "Will generate",
+    "outputFiles": "output files",
+    "noSelection": "Select folders to split into separate files",
+    "skipSplit": "Keep as single file",
+    "confirmSplit": "Split into files",
+    "selectFolders": "Select folders to split"
   },
   "errors": {
     "fileSystemAccess": "File System Access API is not supported in your browser",

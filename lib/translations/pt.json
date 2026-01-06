@@ -83,10 +83,15 @@
     "title": "Saída unificada",
     "copy": "Copiar",
     "download": "Baixar",
+    "downloadZip": "Baixar ZIP",
+    "downloading": "Baixando...",
     "copied": "✓ Copiado!",
     "raw": "Código",
     "preview": "Visualização",
     "split": "Dividido",
+    "splitFolders": "Dividir Pastas",
+    "foldersSelected": "pastas selecionadas",
+    "copyDisabledWhenSplit": "Copiar está desabilitado quando pastas são divididas. Baixe como ZIP.",
     "generating": "Gerando saída, aguarde...",
     "selectDirectory": "Selecione um diretório para começar",
     "stats": {
@@ -95,6 +100,19 @@
       "large": "Grande",
       "tokens": "Tokens"
     }
+  },
+  "folderSplit": {
+    "title": "Dividir Pastas Grandes",
+    "description": "Seu projeto excede 1MB. Selecione pastas para exportar como arquivos separados para melhor organização.",
+    "largeFoldersFound": "pastas excedem o limite de tamanho",
+    "files": "arquivos",
+    "foldersSelected": "pastas selecionadas",
+    "willGenerate": "Gerará",
+    "outputFiles": "arquivos de saída",
+    "noSelection": "Selecione pastas para dividir em arquivos separados",
+    "skipSplit": "Manter como arquivo único",
+    "confirmSplit": "Dividir em arquivos",
+    "selectFolders": "Selecione pastas para dividir"
   },
   "errors": {
     "fileSystemAccess": "A API de acesso ao sistema de arquivos não é suportada no seu navegador",

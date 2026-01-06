@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
-import { DEFAULT_IGNORE_PATTERNS } from '../lib/utils';
+import { useState, useEffect, useMemo } from 'react';
+import { DEFAULT_IGNORE_PATTERNS, calculateFolderStats, FolderStats } from '../lib/utils';
 import { useProjectProcessor } from '../hooks/useProjectProcessor';
 import { useTranslation } from '../hooks/useTranslation';
 import ControlsPanel from './ControlsPanel';
 import OutputPanel from './OutputPanel';
 import DirectoryStructurePanel from './DirectoryStructurePanel';
 import LandingPage from './LandingPage';
+import FolderSplitModal from './FolderSplitModal';
+
+const FOLDER_SPLIT_THRESHOLD_MB = 1; // Show modal when project exceeds this size
 
 const App = () => {
     // Configurações
@@ -13,12 +16,52 @@ const App = () => {
     const [maxFileSize, setMaxFileSize] = useState<number>(5120);
     const [outputFormat, setOutputFormat] = useState<'markdown' | 'json' | 'xml'>('xml');
     const [includeTree, setIncludeTree] = useState(true);
+    
+    // Folder split state
+    const [showSplitModal, setShowSplitModal] = useState(false);
+    const [selectedFoldersToSplit, setSelectedFoldersToSplit] = useState<Set<string>>(new Set());
+    const [hasShownSplitModal, setHasShownSplitModal] = useState(false);
 
     const { t } = useTranslation();
-    const { isLoading, statusMessage, outputContent, directoryName, stats, processDirectory, reprocessWithIgnorePatterns } = useProjectProcessor(t);
+    const { isLoading, statusMessage, outputContent, directoryName, stats, filesData, processDirectory, reprocessWithIgnorePatterns } = useProjectProcessor(t);
 
+    // Calculate folder stats for split modal
+    const folderStats: FolderStats | null = useMemo(() => {
+        if (!stats?.files || !directoryName) return null;
+        return calculateFolderStats(stats.files, directoryName);
+    }, [stats?.files, directoryName]);
+
+    // Calculate total project size
+    const totalProjectSize = useMemo(() => {
+        if (!stats?.files) return 0;
+        return stats.files.reduce((sum, file) => sum + (file.size || 0), 0);
+    }, [stats?.files]);
+
+    // Show split modal when project is large enough
+    useEffect(() => {
+        const thresholdBytes = FOLDER_SPLIT_THRESHOLD_MB * 1024 * 1024;
+        if (
+            totalProjectSize >= thresholdBytes && 
+            !hasShownSplitModal && 
+            !isLoading && 
+            directoryName &&
+            folderStats
+        ) {
+            setShowSplitModal(true);
+            setHasShownSplitModal(true);
+        }
+    }, [totalProjectSize, hasShownSplitModal, isLoading, directoryName, folderStats]);
+
+    // Reset modal shown flag when selecting new directory
     const handleProcess = () => {
+        setHasShownSplitModal(false);
+        setSelectedFoldersToSplit(new Set());
         processDirectory({ ignorePatterns, maxFileSize, outputFormat, includeTree });
+    };
+
+    const handleSplitConfirm = (selectedFolders: Set<string>) => {
+        setSelectedFoldersToSplit(selectedFolders);
+        setShowSplitModal(false);
     };
 
     // Reprocess when output format changes
@@ -153,10 +196,23 @@ const App = () => {
                             outputContent={outputContent}
                             directoryName={directoryName}
                             outputFormat={outputFormat}
+                            selectedFoldersToSplit={selectedFoldersToSplit}
+                            filesData={filesData}
+                            onOpenSplitModal={() => setShowSplitModal(true)}
                         />
                     </div>
                 </div>
             </main>
+
+            {/* Folder Split Modal */}
+            <FolderSplitModal
+                isOpen={showSplitModal}
+                onClose={() => setShowSplitModal(false)}
+                onConfirm={handleSplitConfirm}
+                folderStats={folderStats}
+                totalProjectSize={totalProjectSize}
+                folderSizeLimitMB={FOLDER_SPLIT_THRESHOLD_MB}
+            />
         </div>
     );
 };
