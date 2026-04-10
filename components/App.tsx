@@ -153,12 +153,30 @@ const App = () => {
 
     // -- TELA INICIAL (LANDING PAGE) --
     if (!directoryName && !isLoading) {
-        return <LandingPage onSelectDirectory={handleProcess} isLoading={isLoading} />;
+        return (
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key="landing"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0, y: -60, scale: 0.97 }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                >
+                    <LandingPage onSelectDirectory={handleProcess} isLoading={isLoading} />
+                </motion.div>
+            </AnimatePresence>
+        );
     }
 
     // -- TELA PRINCIPAL (LAYOUT) --
     return (
-        <div className="flex flex-row h-screen w-full overflow-hidden items-stretch bg-slate-950">
+        <AnimatePresence mode="wait">
+        <motion.div
+            key="main"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="flex flex-row h-screen w-full overflow-hidden items-stretch bg-slate-950"
+        >
             {/* Sidebar da Árvore de Arquivos */}
             <DirectoryStructurePanel
                 stats={stats}
@@ -272,7 +290,8 @@ const App = () => {
                 totalProjectSize={totalProjectSize}
                 folderSizeLimitMB={FOLDER_SPLIT_THRESHOLD_MB}
             />
-        </div>
+        </motion.div>
+        </AnimatePresence>
     );
 };
 

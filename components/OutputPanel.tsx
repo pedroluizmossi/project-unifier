@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import JSZip from 'jszip';
 import { ProcessorStatus, FileInfo, generateSplitOutputs } from '../lib/utils.ts';
@@ -6,6 +6,8 @@ import MarkdownPreview from './MarkdownPreview.tsx';
 import JsonPreview from './JsonPreview.tsx';
 import XmlPreview from './XmlPreview.tsx';
 import LanguageStatsChart from './LanguageStatsChart.tsx';
+import AnimatedCounter from './AnimatedCounter.tsx';
+import ToastContainer, { ToastMessage } from './Toast.tsx';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface OutputPanelProps {
@@ -20,21 +22,53 @@ interface OutputPanelProps {
     onOpenSplitModal?: () => void;
 }
 
-const StatCard = ({ icon, label, value, tooltip, index = 0 }: { icon: React.ReactNode, label: string, value: string | number, tooltip?: string, index?: number }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: index * 0.08, type: 'spring', stiffness: 400, damping: 25 }}
-        whileHover={{ scale: 1.05, y: -2 }}
-        className={`flex items-center gap-2 rounded-md border border-slate-800/60 bg-slate-900/60 px-3 py-1.5 whitespace-nowrap flex-shrink-0 ${tooltip ? 'cursor-help' : ''}`}
-        title={tooltip}
-    >
-        <div className="text-sky-300">{icon}</div>
-        <div className="text-xs">
-            <span className="font-medium text-slate-100">{value}</span>
-            <span className="text-slate-400 ml-1">{label}</span>
+const StatCard = ({ icon, label, value, tooltip, index = 0 }: { icon: React.ReactNode, label: string, value: string | number, tooltip?: string, index?: number }) => {
+    const numericValue = typeof value === 'string' ? parseInt(value.replace(/[^0-9]/g, ''), 10) : value;
+    const prefix = typeof value === 'string' && value.startsWith('~') ? '~' : '';
+    const isNumeric = !isNaN(numericValue);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: index * 0.08, type: 'spring', stiffness: 400, damping: 25 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            className={`flex items-center gap-2 rounded-md border border-slate-800/60 bg-slate-900/60 px-3 py-1.5 whitespace-nowrap flex-shrink-0 ${tooltip ? 'cursor-help' : ''}`}
+            title={tooltip}
+        >
+            <div className="text-sky-300">{icon}</div>
+            <div className="text-xs">
+                <span className="font-medium text-slate-100">
+                    {isNumeric ? (
+                        <AnimatedCounter value={numericValue} prefix={prefix} duration={0.8} />
+                    ) : value}
+                </span>
+                <span className="text-slate-400 ml-1">{label}</span>
+            </div>
+        </motion.div>
+    );
+};
+
+// Shimmer skeleton for loading state
+const ShimmerSkeleton: React.FC = () => (
+    <div className="p-4 space-y-4 animate-pulse">
+        <div className="flex gap-2">
+            {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-8 w-24 rounded-md bg-slate-800/80 shimmer" />
+            ))}
         </div>
-    </motion.div>
+        <div className="h-3 w-3/4 rounded bg-slate-800/60 shimmer" />
+        <div className="space-y-2 mt-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="h-3 rounded bg-slate-800/40 shimmer" style={{ width: `${60 + Math.random() * 40}%` }} />
+            ))}
+        </div>
+        <div className="space-y-2 mt-4">
+            {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-3 rounded bg-slate-800/30 shimmer" style={{ width: `${50 + Math.random() * 50}%` }} />
+            ))}
+        </div>
+    </div>
 );
 
 const OutputPanel: React.FC<OutputPanelProps> = ({
@@ -46,6 +80,16 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     const [downloaded, setDownloaded] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [viewMode, setViewMode] = useState<'raw' | 'preview' | 'split'>('preview');
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+    const addToast = useCallback((text: string, type: ToastMessage['type'] = 'success') => {
+        const id = Date.now().toString();
+        setToasts(prev => [...prev, { id, text, type }]);
+    }, []);
+
+    const dismissToast = useCallback((id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
 
     const hasSplitSelection = selectedFoldersToSplit && selectedFoldersToSplit.size > 0;
 
@@ -63,18 +107,17 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         if (!outputContent) return;
         navigator.clipboard.writeText(outputContent).then(() => {
             setCopied(true);
+            addToast(t('output.copied'), 'success');
             setTimeout(() => setCopied(false), 2000);
         }, (err) => {
             console.error('Could not copy text: ', err);
-            alert(t('errors.processingFailed'));
+            addToast(t('errors.processingFailed'), 'error');
         });
     };
 
     const handleDownload = async () => {
         if (!outputContent) return;
-        
         setIsDownloading(true);
-        
         try {
             const extensions: Record<string, string> = { markdown: 'md', json: 'json', xml: 'xml' };
             const extension = extensions[outputFormat];
@@ -82,36 +125,27 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
             
             if (hasSplitSelection && filesData && filesData.length > 0 && directoryName) {
                 const outputs = await generateSplitOutputs(
-                    filesData,
-                    selectedFoldersToSplit!,
-                    directoryName,
+                    filesData, selectedFoldersToSplit!, directoryName,
                     { outputFormat, includeTree: true }
                 );
-                
                 const zip = new JSZip();
-                
                 outputs.forEach((output) => {
                     const fileName = output.folderPath 
                         ? `${output.name}_unified.${extension}`
                         : `${directoryName}_main_unified.${extension}`;
                     zip.file(fileName, output.content);
                 });
-                
                 const manifest = {
                     project_name: directoryName,
                     generation_timestamp: new Date().toISOString(),
                     total_parts: outputs.length,
                     output_format: outputFormat,
                     parts: outputs.map(o => ({
-                        name: o.name,
-                        folder_path: o.folderPath || '(root)',
-                        file_count: o.fileCount,
-                        size_bytes: o.size,
-                        estimated_tokens: o.tokens,
+                        name: o.name, folder_path: o.folderPath || '(root)',
+                        file_count: o.fileCount, size_bytes: o.size, estimated_tokens: o.tokens,
                     }))
                 };
                 zip.file('_manifest.json', JSON.stringify(manifest, null, 2));
-                
                 const blob = await zip.generateAsync({ type: 'blob' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -132,12 +166,12 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }
-            
             setDownloaded(true);
+            addToast(t('output.download') + ' ✓', 'success');
             setTimeout(() => setDownloaded(false), 2000);
         } catch (error) {
             console.error('Download failed:', error);
-            alert(t('errors.processingFailed'));
+            addToast(t('errors.processingFailed'), 'error');
         } finally {
             setIsDownloading(false);
         }
@@ -159,9 +193,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                 className="flex flex-wrap items-center gap-3"
                             >
                                 {onOpenSplitModal && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
+                                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                         onClick={onOpenSplitModal}
                                         className={`flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 border transition-all duration-200 ${
                                             hasSplitSelection
@@ -179,16 +211,11 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                         }
                                     </motion.button>
                                 )}
-                                <motion.button
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleCopy}
-                                    disabled={hasSplitSelection}
+                                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+                                    onClick={handleCopy} disabled={hasSplitSelection}
                                     className={`flex items-center gap-2 text-sm font-bold rounded-lg px-4 py-2.5 border-2 transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500 ${
-                                        hasSplitSelection
-                                            ? 'opacity-50 cursor-not-allowed bg-slate-700 border-slate-600 text-slate-400'
-                                            : copied
-                                                ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg'
+                                        hasSplitSelection ? 'opacity-50 cursor-not-allowed bg-slate-700 border-slate-600 text-slate-400'
+                                            : copied ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg'
                                                 : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg'
                                     }`}
                                     title={hasSplitSelection ? t('output.copyDisabledWhenSplit') : ''}
@@ -202,36 +229,24 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                     </AnimatePresence>
                                     {copied ? t('output.copied') : t('output.copy')}
                                 </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleDownload}
-                                    disabled={isDownloading}
+                                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+                                    onClick={handleDownload} disabled={isDownloading}
                                     className={`flex items-center gap-2 text-sm font-bold rounded-lg px-4 py-2.5 border-2 transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 ${
-                                        isDownloading
-                                            ? 'opacity-75 cursor-wait'
-                                            : downloaded
-                                                ? 'bg-blue-500 border-blue-600 text-white shadow-lg'
-                                                : hasSplitSelection
-                                                    ? 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700 hover:shadow-lg'
+                                        isDownloading ? 'opacity-75 cursor-wait'
+                                            : downloaded ? 'bg-blue-500 border-blue-600 text-white shadow-lg'
+                                                : hasSplitSelection ? 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700 hover:shadow-lg'
                                                     : 'border-slate-200 bg-slate-100 text-slate-900 hover:bg-white hover:border-slate-300 hover:shadow-lg'
                                     }`}
                                 >
                                     {isDownloading ? (
-                                        <motion.div
-                                            className="h-5 w-5 border-2 border-current border-t-transparent rounded-full"
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                                        />
+                                        <motion.div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full"
+                                            animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
                                     ) : (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 5v14m0 0l-6-6m6 6l6-6"/><rect x="5" y="19" width="14" height="2" rx="1" /></svg>
                                     )}
-                                    {isDownloading 
-                                        ? t('output.downloading')
-                                        : hasSplitSelection 
-                                            ? t('output.downloadZip')
-                                            : t('output.download')
-                                    }
+                                    {isDownloading ? t('output.downloading')
+                                        : hasSplitSelection ? t('output.downloadZip')
+                                            : t('output.download')}
                                 </motion.button>
                             </motion.div>
                         )}
@@ -246,12 +261,8 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                     </div>
                 )}
                 {stats?.languageStats && stats.languageStats.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="mt-3"
-                    >
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ delay: 0.3, duration: 0.4 }} className="mt-3">
                         <LanguageStatsChart stats={stats.languageStats} />
                     </motion.div>
                 )}
@@ -259,29 +270,17 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                 <AnimatePresence mode="wait">
                 {outputContent ? (
-                    <motion.div
-                        key="content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex-1 min-h-0 flex flex-col overflow-hidden"
-                    >
+                    <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }} className="flex-1 min-h-0 flex flex-col overflow-hidden">
                         <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800/60 bg-slate-900/70 flex-shrink-0">
                             {outputFormat === 'markdown' && (
                                 <div className="flex items-center gap-1 ml-auto">
                                     {(['raw', 'preview', 'split'] as const).map((mode) => (
-                                        <motion.button
-                                            key={mode}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
+                                        <motion.button key={mode} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                             onClick={() => setViewMode(mode)}
                                             className={`relative text-xs font-medium rounded-md px-2 py-1 border shadow transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-                                                viewMode === mode
-                                                    ? 'bg-indigo-600 border-indigo-600 text-white'
-                                                    : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-700/60'
-                                            }`}
-                                        >
+                                                viewMode === mode ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-700/60'
+                                            }`}>
                                             {mode === 'raw' && t('output.raw')}
                                             {mode === 'preview' && t('output.preview')}
                                             {mode === 'split' && t('output.split')}
@@ -305,9 +304,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                     </motion.div>
                                 ) : viewMode === 'preview' ? (
                                     <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full overflow-y-auto">
-                                        <div className="max-w-full overflow-x-hidden">
-                                            <MarkdownPreview content={outputContent} />
-                                        </div>
+                                        <div className="max-w-full overflow-x-hidden"><MarkdownPreview content={outputContent} /></div>
                                     </motion.div>
                                 ) : (
                                     <motion.div key="split" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/60 h-full">
@@ -315,9 +312,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                                             <pre className="text-xs p-4 m-0 overflow-x-auto"><code className="whitespace-pre-wrap break-words">{outputContent}</code></pre>
                                         </div>
                                         <div className="overflow-y-auto min-h-0">
-                                            <div className="max-w-full overflow-x-hidden">
-                                                <MarkdownPreview content={outputContent} />
-                                            </div>
+                                            <div className="max-w-full overflow-x-hidden"><MarkdownPreview content={outputContent} /></div>
                                         </div>
                                     </motion.div>
                                 )
@@ -338,42 +333,32 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                         </div>
                     </motion.div>
                 ) : (
-                    <motion.div
-                        key="empty"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex-1 flex items-center justify-center text-slate-500 p-4 text-center"
-                    >
+                    <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="flex-1 flex flex-col overflow-hidden">
                         {isLoading ? (
-                            <div className="flex flex-col items-center gap-3">
-                                <motion.div
-                                    className="w-8 h-8 border-2 border-indigo-600/30 border-t-indigo-500 rounded-full"
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                />
-                                <motion.span
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="text-sm"
-                                >
-                                    {t('output.generating')}
-                                </motion.span>
+                            <div className="flex-1 flex flex-col">
+                                {/* Indeterminate progress bar */}
+                                <div className="h-1 w-full bg-slate-800 overflow-hidden flex-shrink-0">
+                                    <motion.div
+                                        className="h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
+                                        animate={{ x: ['-100%', '400%'] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                                    />
+                                </div>
+                                <ShimmerSkeleton />
                             </div>
                         ) : (
-                            <motion.span
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-sm"
-                            >
-                                {t('output.selectDirectory')}
-                            </motion.span>
+                            <div className="flex-1 flex items-center justify-center text-slate-500 p-4 text-center">
+                                <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-sm">
+                                    {t('output.selectDirectory')}
+                                </motion.span>
+                            </div>
                         )}
                     </motion.div>
                 )}
                 </AnimatePresence>
             </div>
+            <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         </div>
     );
 };

@@ -107,9 +107,10 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                                className="flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 border border-slate-600"
+                                whileHover={{ scale: 1.02 }}
+                                className="group/tag flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 border border-slate-600 overflow-hidden"
                             >
-                                <span className="truncate flex-1">{pattern}</span>
+                                <span className="truncate flex-1 group-hover/tag:whitespace-normal group-hover/tag:break-all transition-all duration-200">{pattern}</span>
                                 <button 
                                     onClick={() => handleRemovePattern(pattern)}
                                     className="text-slate-400 hover:text-red-400 focus:outline-none flex-shrink-0"
@@ -227,23 +228,31 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                             <span className="text-sm font-medium text-slate-300">{t('controls.includeDirectoryTree')}</span>
                             <span className="text-xs text-slate-500">{t('controls.includeDirectoryTreeHint')}</span>
                         </div>
-                        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                            <input 
-                                type="checkbox" 
-                                name="toggle" 
-                                id="include-tree-toggle" 
-                                checked={includeTree}
-                                onChange={(e) => {
-                                    if (outputFormat !== 'json') setIncludeTree(e.target.checked);
-                                }}
-                                className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-5 checked:border-indigo-600"
-                                style={{ top: 2, left: 2 }}
+                        <button
+                            onClick={() => { if (outputFormat !== 'json') setIncludeTree(!includeTree); }}
+                            className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${includeTree ? 'bg-indigo-600' : 'bg-slate-700'}`}
+                            role="switch"
+                            aria-checked={includeTree}
+                        >
+                            <motion.div
+                                className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm"
+                                animate={{ x: includeTree ? 16 : 0 }}
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
-                            <label 
-                                htmlFor="include-tree-toggle" 
-                                className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${includeTree ? 'bg-indigo-600' : 'bg-slate-700'}`}
-                            ></label>
-                        </div>
+                            <AnimatePresence>
+                                {includeTree && (
+                                    <motion.svg
+                                        initial={{ opacity: 0, scale: 0 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0 }}
+                                        className="absolute top-1 left-[22px] w-3 h-3 text-white"
+                                        viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"
+                                    >
+                                        <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </motion.svg>
+                                )}
+                            </AnimatePresence>
+                        </button>
                     </div>
                 </div>
 

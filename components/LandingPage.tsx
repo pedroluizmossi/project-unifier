@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
 import { useTranslation } from '../hooks/useTranslation';
 import { detectBrowserCapability } from '../lib/utils';
 
@@ -77,18 +77,26 @@ const HeroSection: React.FC<{ onSelectDirectory: () => void; isLoading?: boolean
   isLoading = false,
 }) => {
   const { t } = useTranslation();
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
+  const blobY1 = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const blobY2 = useTransform(scrollYProgress, [0, 1], [0, -80]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   return (
-    <section className="relative w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 px-4 py-20 overflow-hidden">
-      {/* Background decoration */}
+    <section ref={sectionRef} className="relative w-full min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 px-4 py-20 overflow-hidden">
+      {/* Background decoration with parallax */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute top-20 left-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl"
+          style={{ y: blobY1 }}
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
           className="absolute bottom-20 right-10 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl"
+          style={{ y: blobY2 }}
           animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -96,6 +104,7 @@ const HeroSection: React.FC<{ onSelectDirectory: () => void; isLoading?: boolean
 
       <motion.div
         className="max-w-4xl w-full space-y-8 text-center relative z-10"
+        style={{ y: contentY, opacity: contentOpacity }}
         initial="hidden"
         animate="visible"
         variants={staggerContainer}
