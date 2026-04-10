@@ -52,24 +52,6 @@
       "description": "Ajude novos membros da equipe a entender a estrutura do projeto rapidamente"
     }
   },
-  "controls": {
-    "title": "Configurações de entrada",
-    "ignorePatterns": "Padrões de exclusão",
-    "ignorePatternPlaceholder": "ex: .git",
-    "ignorePatternAdd": "+",
-    "ignorePatternRemove": "×",
-    "ignorePatternNone": "Nenhum padrão.",
-    "maxFileSize": "Tamanho máximo de arquivo",
-    "maxFileSizePlaceholder": "Tamanho máximo",
-    "maxFileSizeHint": "Arquivos maiores que este tamanho serão ignorados.",
-    "outputFormat": "Formato de saída",
-    "markdown": "Markdown",
-    "json": "JSON",
-    "xml": "XML",
-    "includeDirectoryTree": "Incluir árvore de diretórios",
-    "includeDirectoryTreeHint": "Adicionar visualização de estrutura",
-    "selectDirectory": "📁 Selecionar diretório"
-  },
   "directoryStructure": {
     "title": "Estrutura",
     "searchPlaceholder": "Pesquisar...",
@@ -133,6 +115,26 @@
     "switcher": "Idioma",
     "english": "English",
     "portuguese": "Português"
+  },
+  "controls": {
+    "title": "Configurações de entrada",
+    "ignorePatterns": "Padrões de exclusão",
+    "ignorePatternPlaceholder": "ex: .git",
+    "ignorePatternAdd": "+",
+    "ignorePatternRemove": "×",
+    "ignorePatternNone": "Nenhum padrão.",
+    "maxFileSize": "Tamanho máximo de arquivo",
+    "maxFileSizePlaceholder": "Tamanho máximo",
+    "maxFileSizeHint": "Arquivos maiores que este tamanho serão ignorados.",
+    "outputFormat": "Formato de saída",
+    "markdown": "Markdown",
+    "json": "JSON",
+    "xml": "XML",
+    "xmlRecommendedTooltip": "XML é recomendado para melhor eficiência de tokens com LLMs",
+    "includeDirectoryTree": "Incluir árvore de diretórios",
+    "includeDirectoryTreeHint": "Adicionar visualização de estrutura",
+    "selectDirectory": "📁 Selecionar diretório",
+    "openSettings": "Abrir Configurações"
   },
   "filterPresets": {
     "title": "Predefinições de Filtro",

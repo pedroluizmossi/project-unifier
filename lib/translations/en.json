@@ -52,24 +52,6 @@
       "description": "Help new team members understand project structure quickly"
     }
   },
-  "controls": {
-    "title": "Optimized Input Settings",
-    "ignorePatterns": "Ignore Patterns",
-    "ignorePatternPlaceholder": "e.g. .git",
-    "ignorePatternAdd": "+",
-    "ignorePatternRemove": "×",
-    "ignorePatternNone": "No patterns.",
-    "maxFileSize": "Max File Size",
-    "maxFileSizePlaceholder": "Maximum size",
-    "maxFileSizeHint": "Files larger than this size will be ignored.",
-    "outputFormat": "Output Format",
-    "markdown": "Markdown",
-    "json": "JSON",
-    "xml": "XML",
-    "includeDirectoryTree": "Include Directory Tree",
-    "includeDirectoryTreeHint": "Add structure visualization",
-    "selectDirectory": "📁 Select Directory"
-  },
   "directoryStructure": {
     "title": "Structure",
     "searchPlaceholder": "Search...",
@@ -133,6 +115,26 @@
     "switcher": "Language",
     "english": "English",
     "portuguese": "Português"
+  },
+  "controls": {
+    "title": "Optimized Input Settings",
+    "ignorePatterns": "Ignore Patterns",
+    "ignorePatternPlaceholder": "e.g. .git",
+    "ignorePatternAdd": "+",
+    "ignorePatternRemove": "×",
+    "ignorePatternNone": "No patterns.",
+    "maxFileSize": "Max File Size",
+    "maxFileSizePlaceholder": "Maximum size",
+    "maxFileSizeHint": "Files larger than this size will be ignored.",
+    "outputFormat": "Output Format",
+    "markdown": "Markdown",
+    "json": "JSON",
+    "xml": "XML",
+    "xmlRecommendedTooltip": "XML is recommended for better token efficiency with LLMs",
+    "includeDirectoryTree": "Include Directory Tree",
+    "includeDirectoryTreeHint": "Add structure visualization",
+    "selectDirectory": "📁 Select Directory",
+    "openSettings": "Open Settings"
   },
   "filterPresets": {
     "title": "Filter Presets",

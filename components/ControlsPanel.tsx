@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../hooks/useTranslation';
 import { FILTER_PRESETS, mergePatterns } from '../lib/filterPresets';
 
@@ -65,19 +66,14 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     };
 
     const displaySize = React.useMemo(() => {
-        if (sizeUnit === 'MB') return maxFileSize / 1024;
-        if (sizeUnit === 'GB') return maxFileSize / (1024 * 1024);
+        if (sizeUnit === 'MB') return Math.round((maxFileSize / 1024) * 100) / 100;
+        if (sizeUnit === 'GB') return Math.round((maxFileSize / (1024 * 1024)) * 100) / 100;
         return maxFileSize;
     }, [maxFileSize, sizeUnit]);
 
     return (
         <div className="w-full">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-4">
-                <button className="text-slate-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                    </svg>
-                </button>
                 <h3 className="text-lg font-semibold text-white">{t('controls.title')}</h3>
             </div>
 
@@ -102,8 +98,17 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5 p-2.5 bg-slate-900/50 rounded border border-slate-700/50 max-h-48 overflow-y-auto">
+                        <AnimatePresence mode="popLayout">
                         {ignorePatterns.split('\n').filter(p => p.trim()).map((pattern, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 border border-slate-600">
+                            <motion.div
+                                key={pattern}
+                                layout
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                className="flex items-center justify-between gap-1.5 px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 border border-slate-600"
+                            >
                                 <span className="truncate flex-1">{pattern}</span>
                                 <button 
                                     onClick={() => handleRemovePattern(pattern)}
@@ -112,8 +117,9 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                                 >
                                     {t('controls.ignorePatternRemove')}
                                 </button>
-                            </div>
+                            </motion.div>
                         ))}
+                        </AnimatePresence>
                         {(!ignorePatterns || !ignorePatterns.trim()) && (
                             <span className="text-slate-500 text-xs italic col-span-2 p-1">{t('controls.ignorePatternNone')}</span>
                         )}
@@ -124,22 +130,34 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                         <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('filterPresets.title')}</label>
                         <div className="flex flex-wrap gap-1.5">
                             {FILTER_PRESETS.map(preset => (
-                                <button
+                                <motion.button
                                     key={preset.id}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.92 }}
                                     onClick={() => handleApplyPreset(preset.id, preset.patterns)}
                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-700/60 text-slate-300 border border-slate-600 hover:bg-indigo-600/20 hover:border-indigo-500/50 hover:text-indigo-300 transition-colors"
                                 >
+                                    <AnimatePresence mode="wait">
                                     {appliedPresets.has(preset.id) ? (
-                                        <>
+                                        <motion.span
+                                            key="applied"
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            exit={{ scale: 0 }}
+                                            className="inline-flex items-center gap-1"
+                                        >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
                                             <span className="text-emerald-400">{t('filterPresets.applied')}</span>
-                                        </>
+                                        </motion.span>
                                     ) : (
-                                        t(preset.translationKey)
+                                        <motion.span key="label" initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}>
+                                            {t(preset.translationKey)}
+                                        </motion.span>
                                     )}
-                                </button>
+                                    </AnimatePresence>
+                                </motion.button>
                             ))}
                         </div>
                     </div>
@@ -160,17 +178,8 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                             <select
                                 value={sizeUnit}
                                 onChange={(e) => {
-                                    setSizeUnit(e.target.value as any);
-                                    // Recalculate maxFileSize based on new unit but keeping the same number value visually?
-                                    // Usually UX expects the value to convert. But here the user changes unit to type a new value.
-                                    // Let's keep the visual number and update the internal KB value.
-                                    let val = displaySize;
-                                    let newUnit = e.target.value;
-                                    let kbValue = val;
-                                    if (newUnit === 'MB') kbValue = val * 1024;
-                                    if (newUnit === 'GB') kbValue = val * 1024 * 1024;
-                                    if (newUnit === 'KB') kbValue = val;
-                                    setMaxFileSize(kbValue);
+                                    setSizeUnit(e.target.value as 'KB' | 'MB' | 'GB');
+                                    // Value converts automatically via displaySize memo — internal KB stays the same
                                 }}
                                 className="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-slate-600 bg-slate-700 text-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -203,6 +212,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                             <button 
                                 onClick={() => setOutputFormat('xml')} 
                                 className={`relative flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${outputFormat === 'xml' ? 'bg-indigo-600 text-white shadow ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-800' : 'text-slate-400 hover:text-slate-200'}`}
+                                title={t('controls.xmlRecommendedTooltip')}
                             >
                                 {t('controls.xml')}
                                 <span className="absolute -top-2 -right-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
@@ -237,12 +247,14 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                     </div>
                 </div>
 
-                <button
+                <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={onSelectDirectory}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                         {t('controls.selectDirectory')}
-                    </button>
+                    </motion.button>
             </div>
         </div>
     );
