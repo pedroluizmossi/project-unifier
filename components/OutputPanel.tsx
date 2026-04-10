@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import JSZip from 'jszip';
-import { ProcessorStatus, FileInfo, generateSplitOutputs } from '../lib/utils.ts';
+import { ProcessorStatus, FileInfo, generateSplitOutputs, LanguageStat } from '../lib/utils.ts';
 import MarkdownPreview from './MarkdownPreview.tsx';
 import JsonPreview from './JsonPreview.tsx';
 import XmlPreview from './XmlPreview.tsx';
 import LanguageSwitcher from './LanguageSwitcher.tsx';
+import LanguageStatsChart from './LanguageStatsChart.tsx';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface OutputPanelProps {
@@ -146,9 +147,9 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
             <div className="p-4 border-b border-slate-800/60 flex-shrink-0">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                        <div>
+                        <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-lg text-slate-100">{t('output.title')}</h3>
-                            <p className="text-xs text-slate-400 mt-1">{statusMessage}</p>
+                            <LanguageSwitcher />
                         </div>
                         {hasFiles && (
                             <div className="flex flex-wrap items-center gap-3">
@@ -224,6 +225,11 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                         <StatCard icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.5A4.5 4.5 0 0 0 17.5 5c-.58 0-1.13.15-1.61.4-.48-.25-1.03-.4-1.61-.4A4.5 4.5 0 0 0 9.5 9.5c0 4.5 3 12.5 6 12.5s1.5-1.06 4-1.06Z"/><path d="M12 20.94c-1.5 0-2.75 1.06-4 1.06-3 0-6-8-6-12.5A4.5 4.5 0 0 1 6.5 5c.58 0 1.13.15 1.61.4.48-.25 1.03-.4 1.61-.4A4.5 4.5 0 0 1 14.5 9.5c0 4.5-3 12.5-6 12.5Z"/></svg>} label={t('output.stats.tokens')} value={`~${stats.tokens.toLocaleString()}`} />
                     </div>
                 )}
+                {stats?.languageStats && stats.languageStats.length > 0 && (
+                    <div className="mt-3">
+                        <LanguageStatsChart stats={stats.languageStats} />
+                    </div>
+                )}
             </div>
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                 {outputContent ? (
@@ -232,7 +238,6 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                             
                             {outputFormat === 'markdown' && (
                                 <>
-                                    <LanguageSwitcher />
                                     <div className="flex items-center gap-1 ml-auto">
                                         {(['raw', 'preview', 'split'] as const).map((mode) => (
                                             <button

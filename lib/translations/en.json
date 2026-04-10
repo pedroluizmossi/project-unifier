@@ -98,7 +98,9 @@
       "text": "Text",
       "binary": "Binary",
       "large": "Large",
-      "tokens": "Tokens"
+      "tokens": "Tokens",
+      "languages": "📊 Languages",
+      "languageDistribution": "Language distribution"
     }
   },
   "folderSplit": {
@@ -131,5 +133,12 @@
     "switcher": "Language",
     "english": "English",
     "portuguese": "Português"
+  },
+  "filterPresets": {
+    "title": "Filter Presets",
+    "nodejs": { "label": "Node.js" },
+    "staticAssets": { "label": "Static Assets" },
+    "minified": { "label": "Minified Files" },
+    "applied": "Applied!"
   }
 }

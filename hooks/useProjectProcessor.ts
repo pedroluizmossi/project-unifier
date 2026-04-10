@@ -11,6 +11,7 @@ import {
     isIgnored,
     BrowserCapability,
     generateProjectOutput,
+    calculateLanguageStats,
 } from '../lib/utils.ts';
 import { useFileProcessorWorker } from './useFileProcessorWorker';
 
@@ -126,7 +127,8 @@ export const useProjectProcessor = (t: TranslationFunction) => {
                 binary: categorized.binary_files.length,
                 large: categorized.large_files.length,
                 tokens: calculateTokens(output),
-                files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) }))
+                files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) })),
+                languageStats: calculateLanguageStats(filesData),
             });
             setStatusMessage(`Processing complete for ${dirName}.`);
 
@@ -197,7 +199,8 @@ export const useProjectProcessor = (t: TranslationFunction) => {
                 binary: categorized.binary_files.length,
                 large: categorized.large_files.length,
                 tokens: calculateTokens(output),
-                files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) }))
+                files: filesData.map(f => ({ name: f.path, size: Math.round((f.size_kb ?? 0) * 1024) })),
+                languageStats: calculateLanguageStats(filesData),
             });
             setStatusMessage(`Processing complete for ${cachedDirHandle.name}.`);
 

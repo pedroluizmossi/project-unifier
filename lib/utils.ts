@@ -31,12 +31,41 @@ export type ProjectTree = {
     [key: string]: any;
 }
 
+export type LanguageStat = {
+    language: string;
+    count: number;
+    percentage: number;
+    sizeKb: number;
+};
+
 export type ProcessorStatus = {
     text: number;
     binary: number;
     large: number;
     tokens: number;
     files?: { name: string; size: number }[];
+    languageStats?: LanguageStat[];
+};
+
+export const calculateLanguageStats = (filesData: FileInfo[]): LanguageStat[] => {
+    const langMap = new Map<string, { count: number; sizeKb: number }>();
+    const textFiles = filesData.filter(f => f.type === 'text_file') as Extract<FileInfo, { type: 'text_file' }>[];
+    
+    textFiles.forEach(f => {
+        const lang = f.language || 'other';
+        const existing = langMap.get(lang) || { count: 0, sizeKb: 0 };
+        langMap.set(lang, { count: existing.count + 1, sizeKb: existing.sizeKb + f.size_kb });
+    });
+
+    const total = textFiles.length || 1;
+    return Array.from(langMap.entries())
+        .map(([language, { count, sizeKb }]) => ({
+            language,
+            count,
+            percentage: Math.round((count / total) * 1000) / 10,
+            sizeKb,
+        }))
+        .sort((a, b) => b.count - a.count);
 };
 
 // --- CONSTANTS AND CONFIGURATIONS ---
@@ -187,10 +216,20 @@ export const processFile = async (fileHandle: FileSystemFileHandle, relativePath
 
 export const calculateTokens = (text: string): number => Math.ceil(text.length / 4);
 
-export const renderMarkdown = (data: { objective?: string; directory_tree?: string; files_data: CategorizedFiles; project_name: string }): string => {
+export const renderMarkdown = (data: { objective?: string; directory_tree?: string; files_data: CategorizedFiles; project_name: string; language_stats?: LanguageStat[] }): string => {
     let lines = [ "---", `project_name: ${data.project_name}`, `generation_timestamp_utc: ${new Date().toISOString()}`, "---", "" ];
     if (data.directory_tree) lines.push(`## 🌳 Directory Structure\n\n\`\`\`\n${data.directory_tree.trim()}\n\`\`\`\n`);
     
+    if (data.language_stats && data.language_stats.length > 0) {
+        lines.push("## 📊 Language Statistics\n");
+        lines.push("| Language | Files | Percentage | Size (KB) |");
+        lines.push("|----------|------:|-----------:|----------:|");
+        data.language_stats.forEach(s => {
+            lines.push(`| ${s.language} | ${s.count} | ${s.percentage}% | ${s.sizeKb.toFixed(2)} |`);
+        });
+        lines.push("");
+    }
+
     if (data.files_data.text_files.length > 0) {
         lines.push("## �  Text File Contents\n");
         data.files_data.text_files.forEach(f => {
@@ -220,10 +259,19 @@ const escapeXmlAttribute = (value: string): string => {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
 
-export const renderXml = (data: { directory_tree?: string; files_data: CategorizedFiles; project_name: string }): string => {
+export const renderXml = (data: { directory_tree?: string; files_data: CategorizedFiles; project_name: string; language_stats?: LanguageStat[] }): string => {
     const timestamp = new Date().toISOString();
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<project name="${escapeXmlAttribute(data.project_name)}" timestamp="${timestamp}">\n`;
+
+    // Language statistics
+    if (data.language_stats && data.language_stats.length > 0) {
+        xml += `  <language_statistics>\n`;
+        data.language_stats.forEach(s => {
+            xml += `    <language name="${escapeXmlAttribute(s.language)}" files="${s.count}" percentage="${s.percentage}" size_kb="${s.sizeKb.toFixed(2)}" />\n`;
+        });
+        xml += `  </language_statistics>\n`;
+    }
 
     // Directory structure (optional)
     if (data.directory_tree) {
@@ -340,10 +388,12 @@ export const generateProjectOutput = async (params: GenerateOutputParams): Promi
             const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
             tree = await generateTree(dirHandle, patterns);
         }
+        const langStats = calculateLanguageStats(filesData);
         output = renderMarkdown({
             project_name: dirName,
             directory_tree: tree,
             files_data: categorized,
+            language_stats: langStats,
         });
     } else if (settings.outputFormat === 'xml') {
         let tree: string | undefined;
@@ -351,12 +401,15 @@ export const generateProjectOutput = async (params: GenerateOutputParams): Promi
             const patterns = settings.ignorePatterns.split('\n').filter(p => p.trim() !== '');
             tree = await generateTree(dirHandle, patterns);
         }
+        const langStats = calculateLanguageStats(filesData);
         output = renderXml({
             project_name: dirName,
             directory_tree: tree,
             files_data: categorized,
+            language_stats: langStats,
         });
     } else {
+        const langStats = calculateLanguageStats(filesData);
         const allFiles = [...categorized.text_files, ...categorized.binary_files, ...categorized.large_files];
         const jsonTree = buildJsonStructure(allFiles, dirName);
         output = JSON.stringify({
@@ -368,7 +421,13 @@ export const generateProjectOutput = async (params: GenerateOutputParams): Promi
                     text_files: categorized.text_files.length,
                     binary_files: categorized.binary_files.length,
                     large_files: categorized.large_files.length,
-                }
+                },
+                language_statistics: langStats.map(s => ({
+                    language: s.language,
+                    files: s.count,
+                    percentage: s.percentage,
+                    size_kb: Math.round(s.sizeKb * 100) / 100,
+                })),
             }
         }, null, 2);
     }
