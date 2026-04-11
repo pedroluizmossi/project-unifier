@@ -1,167 +1,250 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { parseXml, type XmlNode } from '../lib/xmlParser.ts';
 
 interface XmlPreviewProps {
     content: string;
 }
 
-const XmlPreview: React.FC<XmlPreviewProps> = ({ content }) => {
-    const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-    const [searchTerm, setSearchTerm] = useState('');
+/**
+ * Escapes regex metacharacters so the string can be used safely in `new RegExp(...)`.
+ * Escapes: . * + ? ^ $ { } ( ) | [ ] \
+ */
+export function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
 
-    const togglePath = (path: string) => {
-        const newSet = new Set(expandedPaths);
-        if (newSet.has(path)) {
-            newSet.delete(path);
-        } else {
-            newSet.add(path);
-        }
-        setExpandedPaths(newSet);
-    };
-
-    const highlightSearch = (text: string): React.ReactNode => {
-        if (!searchTerm) return text;
-        const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
-        return parts.map((part, i) => 
-            part.toLowerCase() === searchTerm.toLowerCase() 
+/**
+ * Highlights occurrences of `searchTerm` in `text`.
+ * Uses escapeRegex to prevent crashes with special characters.
+ * Falls back to `String.includes` if RegExp still fails.
+ */
+export function highlightSearch(text: string, searchTerm: string): React.ReactNode {
+    if (!searchTerm) return text;
+    try {
+        const escaped = escapeRegex(searchTerm);
+        const regex = new RegExp(`(${escaped})`, 'gi');
+        const parts = text.split(regex);
+        return parts.map((part, i) =>
+            part.toLowerCase() === searchTerm.toLowerCase()
                 ? <mark key={i} className="bg-yellow-500/30 text-yellow-200">{part}</mark>
                 : part
         );
-    };
+    } catch {
+        // Fallback: use String.includes for case-insensitive literal match
+        if (!text.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return text;
+        }
+        const parts: React.ReactNode[] = [];
+        let remaining = text;
+        let keyIdx = 0;
+        const lowerSearch = searchTerm.toLowerCase();
+        while (remaining.length > 0) {
+            const idx = remaining.toLowerCase().indexOf(lowerSearch);
+            if (idx === -1) {
+                parts.push(remaining);
+                break;
+            }
+            if (idx > 0) {
+                parts.push(remaining.substring(0, idx));
+            }
+            parts.push(
+                <mark key={keyIdx++} className="bg-yellow-500/30 text-yellow-200">
+                    {remaining.substring(idx, idx + searchTerm.length)}
+                </mark>
+            );
+            remaining = remaining.substring(idx + searchTerm.length);
+        }
+        return <>{parts}</>;
+    }
+}
 
-    const parseXml = (xml: string): React.ReactNode[] => {
-        const lines = xml.split('\n');
-        const result: React.ReactNode[] = [];
-        let pathStack: string[] = [];
-        let elementCounter = 0;
-        let inCdata = false;
-        let cdataContent: string[] = [];
-        let cdataDepth = 0;
+interface TreeRendererProps {
+    nodes: XmlNode[];
+    expandedPaths: Set<string>;
+    onToggle: (id: string) => void;
+    searchTerm: string;
+    depth?: number;
+}
 
-        lines.forEach((line, idx) => {
-            const trimmed = line.trim();
-            
-            // Handle CDATA sections
-            if (inCdata) {
-                if (trimmed.endsWith(']]>')) {
-                    cdataContent.push(trimmed.slice(0, -3));
-                    result.push(
-                        <div key={idx} style={{ marginLeft: `${cdataDepth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
-                            <span className="text-slate-500">&lt;![CDATA[</span>
-                            <div className="ml-4 border-l border-slate-700 pl-2 py-1">
-                                <span className="text-green-400 text-xs whitespace-pre-wrap break-words">
-                                    {highlightSearch(cdataContent.join('\n'))}
-                                </span>
+function hasElementChildren(node: XmlNode): boolean {
+    return node.type === 'element' && !node.selfClosing && node.children.length > 0;
+}
+
+const TreeRenderer: React.FC<TreeRendererProps> = ({ nodes, expandedPaths, onToggle, searchTerm, depth = 0 }) => {
+    return (
+        <>
+            {nodes.map((node) => {
+                switch (node.type) {
+                    case 'declaration':
+                        return (
+                            <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                <span className="mr-1 w-4 inline-block" />
+                                <span className="text-slate-500">{highlightSearch(node.content, searchTerm)}</span>
                             </div>
-                            <span className="text-slate-500">]]&gt;</span>
-                        </div>
-                    );
-                    inCdata = false;
-                    cdataContent = [];
-                } else {
-                    cdataContent.push(trimmed);
+                        );
+
+                    case 'text':
+                        return (
+                            <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm text-slate-300 whitespace-pre-wrap break-words">
+                                <span className="mr-1 w-4 inline-block" />
+                                {highlightSearch(node.content, searchTerm)}
+                            </div>
+                        );
+
+                    case 'cdata':
+                        return (
+                            <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                <span className="mr-1 w-4 inline-block" />
+                                <span className="text-slate-500">&lt;![CDATA[</span>
+                                <div className="ml-4 border-l border-slate-700 pl-2 py-1">
+                                    <span className="text-green-400 text-xs whitespace-pre-wrap break-words">
+                                        {highlightSearch(node.content, searchTerm)}
+                                    </span>
+                                </div>
+                                <span className="text-slate-500">]]&gt;</span>
+                            </div>
+                        );
+
+                    case 'error':
+                        return (
+                            <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                <span className="mr-1 w-4 inline-block" />
+                                <span className="text-red-400" title={node.errorMessage}>
+                                    ⚠ {highlightSearch(node.content, searchTerm)}
+                                </span>
+                                <span className="text-red-500 text-xs ml-2">({node.errorMessage})</span>
+                            </div>
+                        );
+
+                    case 'element': {
+                        const canToggle = hasElementChildren(node);
+                        const isExpanded = expandedPaths.has(node.id);
+
+                        if (node.selfClosing) {
+                            return (
+                                <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                    <span className="mr-1 w-4 inline-block" />
+                                    <span className="text-slate-400">&lt;</span>
+                                    <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                    {node.attributes && <span className="text-slate-300"> {highlightSearch(node.attributes, searchTerm)}</span>}
+                                    <span className="text-slate-400"> /&gt;</span>
+                                </div>
+                            );
+                        }
+
+                        if (canToggle) {
+                            return (
+                                <div key={node.id}>
+                                    <div style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                        <button
+                                            onClick={() => onToggle(node.id)}
+                                            className="text-slate-400 hover:text-slate-300 focus:outline-none mr-1 w-4 inline-block text-center"
+                                            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                                        >
+                                            {isExpanded ? '▼' : '▶'}
+                                        </button>
+                                        <span className="text-slate-400">&lt;</span>
+                                        <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                        {node.attributes && <span className="text-slate-300"> {highlightSearch(node.attributes, searchTerm)}</span>}
+                                        <span className="text-slate-400">&gt;</span>
+                                        {!isExpanded && (
+                                            <span className="text-slate-500">...</span>
+                                        )}
+                                        {!isExpanded && (
+                                            <>
+                                                <span className="text-slate-400">&lt;/</span>
+                                                <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                                <span className="text-slate-400">&gt;</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    {isExpanded && (
+                                        <TreeRenderer
+                                            nodes={node.children}
+                                            expandedPaths={expandedPaths}
+                                            onToggle={onToggle}
+                                            searchTerm={searchTerm}
+                                            depth={depth + 1}
+                                        />
+                                    )}
+                                    {isExpanded && (
+                                        <div style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                            <span className="mr-1 w-4 inline-block" />
+                                            <span className="text-slate-400">&lt;/</span>
+                                            <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                            <span className="text-slate-400">&gt;</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div key={node.id} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
+                                <span className="mr-1 w-4 inline-block" />
+                                <span className="text-slate-400">&lt;</span>
+                                <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                {node.attributes && <span className="text-slate-300"> {highlightSearch(node.attributes, searchTerm)}</span>}
+                                <span className="text-slate-400">&gt;</span>
+                                <span className="text-slate-400">&lt;/</span>
+                                <span className="text-blue-400">{highlightSearch(node.tagName, searchTerm)}</span>
+                                <span className="text-slate-400">&gt;</span>
+                            </div>
+                        );
+                    }
+
+                    default:
+                        return null;
                 }
-                return;
+            })}
+        </>
+    );
+};
+
+/**
+ * Collect IDs of all expandable element nodes up to `maxDepth` levels deep.
+ * Used to auto-expand the first N levels on initial render.
+ */
+function collectExpandableIds(nodes: XmlNode[], maxDepth: number, currentDepth = 0): string[] {
+    if (currentDepth >= maxDepth) return [];
+    const ids: string[] = [];
+    for (const node of nodes) {
+        if (hasElementChildren(node)) {
+            ids.push(node.id);
+            if (node.type === 'element') {
+                ids.push(...collectExpandableIds(node.children, maxDepth, currentDepth + 1));
             }
+        }
+    }
+    return ids;
+}
 
-            if (!trimmed) return;
+const DEFAULT_EXPAND_DEPTH = 3;
 
-            const depth = (line.match(/^ */)?.[0].length || 0) / 2;
-            const currentPath = pathStack.slice(0, depth).join('/');
+const XmlPreview: React.FC<XmlPreviewProps> = ({ content }) => {
+    const [searchTerm, setSearchTerm] = useState('');
 
-            // XML declaration
-            if (trimmed.startsWith('<?xml')) {
-                result.push(
-                    <div key={idx} className="py-0.5">
-                        <span className="text-slate-500">{trimmed}</span>
-                    </div>
-                );
-                return;
-            }
+    const nodes = useMemo(() => parseXml(content), [content]);
 
-            // Opening tag
-            const openTagMatch = trimmed.match(/^<([^\s/>]+)([^>]*)>/);
-            if (openTagMatch) {
-                const tagName = openTagMatch[1];
-                const attributes = openTagMatch[2];
-                const isClosing = trimmed.includes('/>');
-                const elementId = `${currentPath}/${tagName}-${elementCounter++}`;
-                const isExpanded = expandedPaths.has(elementId);
+    const defaultExpanded = useMemo(
+        () => new Set(collectExpandableIds(nodes, DEFAULT_EXPAND_DEPTH)),
+        [nodes]
+    );
 
-                const hasContent = !isClosing && !trimmed.endsWith('/>');
+    const [expandedPaths, setExpandedPaths] = useState<Set<string> | null>(null);
 
-                result.push(
-                    <div key={idx} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
-                        {hasContent && (
-                            <button
-                                onClick={() => togglePath(elementId)}
-                                className="text-slate-400 hover:text-slate-300 focus:outline-none mr-1 w-4 inline-block text-center"
-                            >
-                                {isExpanded ? '▼' : '▶'}
-                            </button>
-                        )}
-                        {!hasContent && <span className="mr-1 w-4 inline-block" />}
-                        <span className="text-slate-400">&lt;</span>
-                        <span className="text-blue-400">{highlightSearch(tagName)}</span>
-                        {attributes && <span className="text-slate-300">{highlightSearch(attributes)}</span>}
-                        <span className="text-slate-400">{isClosing ? ' />' : '>'}</span>
-                    </div>
-                );
+    // Use defaultExpanded until user interacts
+    const activeExpanded = expandedPaths ?? defaultExpanded;
 
-                if (hasContent) {
-                    pathStack[depth] = tagName;
-                }
-                return;
-            }
-
-            // Closing tag
-            const closeTagMatch = trimmed.match(/^<\/([^>]+)>/);
-            if (closeTagMatch) {
-                const tagName = closeTagMatch[1];
-                result.push(
-                    <div key={idx} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
-                        <span className="text-slate-400">&lt;/</span>
-                        <span className="text-blue-400">{highlightSearch(tagName)}</span>
-                        <span className="text-slate-400">&gt;</span>
-                    </div>
-                );
-                pathStack[depth] = '';
-                return;
-            }
-
-            // CDATA start
-            if (trimmed.startsWith('<![CDATA[')) {
-                inCdata = true;
-                cdataDepth = depth;
-                const cdataEnd = trimmed.indexOf(']]>');
-                if (cdataEnd !== -1) {
-                    // CDATA on single line
-                    const content = trimmed.substring(9, cdataEnd);
-                    result.push(
-                        <div key={idx} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm">
-                            <span className="text-slate-500">&lt;![CDATA[</span>
-                            <span className="text-green-400 text-xs">{highlightSearch(content)}</span>
-                            <span className="text-slate-500">]]&gt;</span>
-                        </div>
-                    );
-                    inCdata = false;
-                } else {
-                    // CDATA starts, continues on next lines
-                    cdataContent = [trimmed.substring(9)];
-                }
-                return;
-            }
-
-            // Regular text
-            if (trimmed && !trimmed.startsWith('<')) {
-                result.push(
-                    <div key={idx} style={{ marginLeft: `${depth * 1.5}rem` }} className="py-0.5 font-mono text-sm text-slate-300 whitespace-pre-wrap break-words">
-                        {highlightSearch(trimmed)}
-                    </div>
-                );
-            }
-        });
-
-        return result;
+    const togglePath = (id: string) => {
+        const base = activeExpanded;
+        const newSet = new Set(base);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setExpandedPaths(newSet);
     };
 
     return (
@@ -176,7 +259,14 @@ const XmlPreview: React.FC<XmlPreviewProps> = ({ content }) => {
                 />
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-slate-950/60">
-                <div className="text-slate-300">{parseXml(content)}</div>
+                <div className="text-slate-300">
+                    <TreeRenderer
+                        nodes={nodes}
+                        expandedPaths={activeExpanded}
+                        onToggle={togglePath}
+                        searchTerm={searchTerm}
+                    />
+                </div>
             </div>
         </div>
     );
